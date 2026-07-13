@@ -50,19 +50,20 @@ class MockCarRepository:
         return list(self._cars.values())
 
 
-class MockOwnerUseCases:
+class MockOwnerFacade:
+    """Test double for the owner module facade port."""
+
     def get_owner_by_id(self, owner_id: int):
         if owner_id == 99:
             raise Exception("Owner not found")
         return {"id": owner_id}
 
 
-def test_create_car_success(monkeypatch):
+def test_create_car_success():
     repo = MockCarRepository()
-    use_case = CreateCarUseCase(car_repository=repo)
-    monkeypatch.setattr(
-        "backend.apps.car.use_cases.commands.create_car.get_owner",
-        lambda: MockOwnerUseCases(),
+    use_case = CreateCarUseCase(
+        car_repository=repo,
+        owner_facade=MockOwnerFacade(),
     )
 
     car = use_case.execute(
@@ -79,12 +80,11 @@ def test_create_car_success(monkeypatch):
     assert car.license_plate == "ABC123"
 
 
-def test_create_car_duplicate_license_plate_raises(monkeypatch):
+def test_create_car_duplicate_license_plate_raises():
     repo = MockCarRepository(existing_license_plates=["ABC123"])
-    use_case = CreateCarUseCase(car_repository=repo)
-    monkeypatch.setattr(
-        "backend.apps.car.use_cases.commands.create_car.get_owner",
-        lambda: MockOwnerUseCases(),
+    use_case = CreateCarUseCase(
+        car_repository=repo,
+        owner_facade=MockOwnerFacade(),
     )
 
     with pytest.raises(CarAlreadyExistsError) as exc:
@@ -100,12 +100,11 @@ def test_create_car_duplicate_license_plate_raises(monkeypatch):
     assert "already exists" in str(exc.value)
 
 
-def test_create_car_missing_owner_raises(monkeypatch):
+def test_create_car_missing_owner_raises():
     repo = MockCarRepository()
-    use_case = CreateCarUseCase(car_repository=repo)
-    monkeypatch.setattr(
-        "backend.apps.car.use_cases.commands.create_car.get_owner",
-        lambda: MockOwnerUseCases(),
+    use_case = CreateCarUseCase(
+        car_repository=repo,
+        owner_facade=MockOwnerFacade(),
     )
 
     with pytest.raises(Exception) as exc:

@@ -11,6 +11,8 @@ urlpatterns = [
     path("api/rbac/", include("backend.apps.rbac.interfaces.urls")),
     path("api/", include("backend.apps.owner.interfaces.urls")),
     path("api/", include("backend.apps.car.interfaces.urls")),
+    path("api/", include("backend.apps.ordering.interfaces.urls")),
+    path("api/", include("backend.apps.notification.interfaces.urls")),
 ]
 
 if settings.DEBUG:

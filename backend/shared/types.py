@@ -35,3 +35,21 @@ class UserDTO:
     last_name: str = ""
     is_staff: bool = False
     is_active: bool = True
+
+
+@dataclass(frozen=True)
+class JobDTO:
+    id: int
+    job_id: str
+    job_status: str
+    file_editable: bool
+    order_id: int
+
+
+@dataclass(frozen=True)
+class OrderDTO:
+    id: int
+    order_number: str
+    user_id: int
+    status: str
+    jobs: list[JobDTO]

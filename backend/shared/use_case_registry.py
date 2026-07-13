@@ -4,6 +4,17 @@ from typing import Any
 
 
 class _UseCaseRegistry:
+    """Global registry of module use-case facades.
+
+    This registry is intentionally small. It exists only because Django's
+    app-loading lifecycle makes pure constructor injection across modules
+    awkward at the view layer. Each module registers itself in
+    ``AppConfig.ready()`` and consumers retrieve facades through the typed
+    convenience functions below.
+
+    For tests, call ``registry.reset()`` before registering fresh fakes.
+    """
+
     def __init__(self):
         self._modules: dict[str, Any] = {}
 
@@ -19,6 +30,13 @@ class _UseCaseRegistry:
                 f"Available: {list(self._modules.keys())}"
             )
         return self._modules[name]
+
+    def reset(self) -> None:
+        """Clear all registrations. Useful in tests."""
+        self._modules.clear()
+
+    def is_registered(self, name: str) -> bool:
+        return name in self._modules
 
 
 registry = _UseCaseRegistry()
@@ -45,3 +63,11 @@ def get_owner():
 
 def get_car():
     return registry.get("car")
+
+
+def get_ordering():
+    return registry.get("ordering")
+
+
+def get_notification():
+    return registry.get("notification")

@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     "backend.apps.rbac",
     "backend.apps.owner",
     "backend.apps.car",
+    "backend.apps.ordering",
+    "backend.apps.notification",
 ]
 
 MIDDLEWARE = [

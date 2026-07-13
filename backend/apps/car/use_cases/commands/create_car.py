@@ -2,22 +2,33 @@
 
 from backend.apps.car.domain.exceptions import CarAlreadyExistsError
 from backend.apps.car.domain.models import Car
+from backend.apps.car.domain.ports import OwnerFacade
 from backend.apps.car.domain.repository_interfaces import CarRepositoryInterface
 from backend.shared.domain import UseCase
 from backend.shared.exceptions import NotFoundError
-from backend.shared.use_case_registry import get_owner
 
 
 class CreateCarUseCase(UseCase):
     """Create a new car for an owner."""
 
-    def __init__(self, car_repository: CarRepositoryInterface = None):
+    def __init__(
+        self,
+        car_repository: CarRepositoryInterface = None,
+        owner_facade: OwnerFacade = None,
+    ):
         if car_repository is None:
             from backend.apps.car.repositories.car_repository import CarRepository
 
             self.car_repo = CarRepository()
         else:
             self.car_repo = car_repository
+
+        if owner_facade is None:
+            from backend.shared.use_case_registry import get_owner
+
+            self.owner_facade = get_owner()
+        else:
+            self.owner_facade = owner_facade
 
     def execute(
         self,
@@ -34,9 +45,9 @@ class CreateCarUseCase(UseCase):
                 f"A car with license plate '{license_plate}' already exists."
             )
 
-        # Validate the owner exists via the registry (cross-module rule).
+        # Validate the owner exists via the injected facade (cross-module rule).
         try:
-            get_owner().get_owner_by_id(owner_id=owner_id)
+            self.owner_facade.get_owner_by_id(owner_id=owner_id)
         except Exception as exc:
             raise NotFoundError(f"Owner with id {owner_id} not found.") from exc
 
