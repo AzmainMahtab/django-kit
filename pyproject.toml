@@ -1,0 +1,51 @@
+[project]
+name = "django-init"
+version = "0.1.0"
+description = "Elite4Print Django modular monolith starter kit"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.2",
+    "djangorestframework>=3.15",
+    "drf-spectacular>=0.28",
+    "django-cors-headers>=4.4",
+    "django-filter>=24.2",
+    "django-celery-beat>=2.7",
+    "celery[redis]>=5.4",
+    "redis>=5.0",
+    "channels[daphne]>=4.1",
+    "psycopg[binary]>=3.2",
+    "python-dotenv>=1.0",
+    "pyjwt>=2.12",
+    "gunicorn>=22.0",
+    "whitenoise>=6.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest-django>=4.8",
+    "pytest>=8.2",
+    "import-linter>=2.0",
+    "ruff>=0.5",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "backend.core.settings.test_settings"
+django_find_project = false
+pythonpath = ["."]
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["**/migrations/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+bypass-selection = true

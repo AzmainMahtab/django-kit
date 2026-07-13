@@ -1,0 +1,1 @@
+"""Owner query use cases."""
