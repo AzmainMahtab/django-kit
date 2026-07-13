@@ -1,4 +1,4 @@
-# django-init
+# django-kit
 
 A Django 5.2 modular monolith starter kit implementing the architecture described in `architecture.md`.
 
