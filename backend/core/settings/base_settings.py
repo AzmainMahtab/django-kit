@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "backend.apps.car",
     "backend.apps.ordering",
     "backend.apps.notification",
+    "backend.apps.event_outbox",
 ]
 
 MIDDLEWARE = [

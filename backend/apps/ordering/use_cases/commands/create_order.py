@@ -56,7 +56,7 @@ class CreateOrderUseCase(UseCase):
             )
             created_jobs.append(self.job_repo.create(job))
 
-        self.event_bus.publish(
+        self.event_bus.publish_durable(
             OrderCreated(
                 aggregate_id=order.id,
                 data={
