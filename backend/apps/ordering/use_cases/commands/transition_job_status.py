@@ -50,7 +50,7 @@ class TransitionJobStatusUseCase(UseCase):
         job.file_editable = JobStateMachine.is_file_editable(new_status)
         self.job_repo.save(job, update_fields=["job_status", "file_editable", "updated_at"])
 
-        self.event_bus.publish(
+        self.event_bus.publish_durable(
             JobStatusChanged(
                 aggregate_id=job.id,
                 data={
