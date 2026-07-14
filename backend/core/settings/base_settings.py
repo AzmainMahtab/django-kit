@@ -48,7 +48,10 @@ INSTALLED_APPS = [
     "backend.apps.rbac",
     "backend.apps.owner",
     "backend.apps.car",
+    "backend.apps.catalog",
     "backend.apps.ordering",
+    "backend.apps.payment",
+    "backend.apps.promotion",
     "backend.apps.notification",
     "backend.apps.event_outbox",
 ]
