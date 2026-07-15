@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('order_number', models.CharField(db_index=True, max_length=32, unique=True)),
-                ('user_id', models.IntegerField(db_index=True)),
+                ('user_id', models.UUIDField(db_index=True)),
                 ('status', models.CharField(default='PENDING', max_length=32)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),

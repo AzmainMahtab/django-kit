@@ -10,6 +10,9 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=32, blank=True, default="")
     is_email_verified = models.BooleanField(default=False)
+    # Mirrors the legacy Elite4Print user UUID so migrated slice data can
+    # preserve the original identifier without changing the internal PK.
+    legacy_id = models.UUIDField(null=True, blank=True, unique=True, db_index=True)
 
     class Meta:
         db_table = "identity_user"

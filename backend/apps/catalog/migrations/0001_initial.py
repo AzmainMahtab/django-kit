@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=255)),
                 ('description', models.TextField(blank=True)),
                 ('product_code', models.CharField(db_index=True, max_length=255, unique=True)),
-                ('created_by_id', models.IntegerField(blank=True, db_index=True, null=True)),
+                ('created_by_id', models.UUIDField(blank=True, db_index=True, null=True)),
                 ('product_type', models.CharField(default='OFFSET', max_length=255)),
                 ('min_price', models.DecimalField(decimal_places=2, default=0, max_digits=10)),
                 ('max_price', models.DecimalField(decimal_places=2, default=0, max_digits=10)),

@@ -1,5 +1,7 @@
 """Payment domain models."""
 
+import uuid
+
 from django.db import models
 
 
@@ -37,7 +39,7 @@ class Payment(models.Model):
     card_number = models.CharField(max_length=50, null=True, blank=True)
     job_change_id = models.IntegerField(null=True, blank=True)
     transactions_history = models.JSONField(null=True, blank=True)
-    user_id = models.IntegerField(null=True, blank=True, db_index=True)
+    user_id = models.UUIDField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

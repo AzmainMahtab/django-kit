@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('card_number', models.CharField(blank=True, max_length=50, null=True)),
                 ('job_change_id', models.IntegerField(blank=True, null=True)),
                 ('transactions_history', models.JSONField(blank=True, null=True)),
-                ('user_id', models.IntegerField(blank=True, db_index=True, null=True)),
+                ('user_id', models.UUIDField(blank=True, db_index=True, null=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
             ],

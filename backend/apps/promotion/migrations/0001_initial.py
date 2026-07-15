@@ -35,10 +35,28 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
+            name='CouponProduct',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('product_id', models.IntegerField(db_index=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('coupon', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='coupon_products', to='promotion.coupon')),
+            ],
+            options={
+                'db_table': 'promotion_couponproduct',
+                'ordering': ['-created_at'],
+            },
+        ),
+        migrations.AddConstraint(
+            model_name='couponproduct',
+            constraint=models.UniqueConstraint(fields=('coupon', 'product_id'), name='unique_coupon_product'),
+        ),
+        migrations.CreateModel(
             name='CouponUsage',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('user_id', models.IntegerField(db_index=True)),
+                ('user_id', models.UUIDField(db_index=True)),
                 ('order_id', models.IntegerField(db_index=True, unique=True)),
                 ('status', models.CharField(choices=[('RESERVED', 'Reserved'), ('CONFIRMED', 'Confirmed'), ('REVERSED', 'Reversed')], default='RESERVED', max_length=20)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),

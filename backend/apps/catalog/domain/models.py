@@ -1,5 +1,7 @@
 """Catalog domain models."""
 
+import uuid
+
 from django.db import models
 
 
@@ -27,7 +29,7 @@ class Product(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     product_code = models.CharField(max_length=255, unique=True, db_index=True)
-    created_by_id = models.IntegerField(null=True, blank=True, db_index=True)
+    created_by_id = models.UUIDField(null=True, blank=True, db_index=True)
     product_type = models.CharField(max_length=255, default="OFFSET")
     min_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     max_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)

@@ -1,5 +1,7 @@
 """Ordering domain models."""
 
+import uuid
+
 from django.db import models
 
 
@@ -13,7 +15,7 @@ class Order(models.Model):
     )
 
     order_number = models.CharField(max_length=32, unique=True, db_index=True)
-    user_id = models.IntegerField(db_index=True)
+    user_id = models.UUIDField(db_index=True)
     status = models.CharField(max_length=32, default="PENDING")
 
     # Financial fields from Elite4Print

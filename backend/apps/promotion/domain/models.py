@@ -1,5 +1,7 @@
 """Promotion domain models."""
 
+import uuid
+
 from django.db import models
 
 
@@ -37,6 +39,29 @@ class Coupon(models.Model):
         return self.coupon_code
 
 
+class CouponProduct(models.Model):
+    """Many-to-many link between coupons and products."""
+
+    coupon = models.ForeignKey(
+        Coupon, on_delete=models.CASCADE, related_name="coupon_products"
+    )
+    product_id = models.IntegerField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "promotion_couponproduct"
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["coupon", "product_id"], name="unique_coupon_product"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.coupon.coupon_code} - {self.product_id}"
+
+
 class CouponUsage(models.Model):
     """Tracks usage of a coupon on an order."""
 
@@ -49,7 +74,7 @@ class CouponUsage(models.Model):
     coupon = models.ForeignKey(
         Coupon, on_delete=models.CASCADE, related_name="usages"
     )
-    user_id = models.IntegerField(db_index=True)
+    user_id = models.UUIDField(db_index=True)
     order_id = models.IntegerField(unique=True, db_index=True)
     status = models.CharField(
         max_length=20, choices=COUPON_USAGE_STATUS, default="RESERVED"
