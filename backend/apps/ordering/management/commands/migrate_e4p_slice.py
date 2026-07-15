@@ -14,6 +14,7 @@ from backend.apps.identity.domain.models import User
 from backend.apps.ordering.domain.models import Job, JobMemo, Order
 from backend.apps.payment.domain.models import Payment, PendingRefund
 from backend.apps.promotion.domain.models import Coupon, CouponProduct, CouponUsage
+from django.db import connection
 
 
 LEGACY_DSN = os.getenv(
@@ -34,11 +35,43 @@ class Command(BaseCommand):
             default=LEGACY_DSN,
             help="Connection string for the legacy source database.",
         )
+        parser.add_argument(
+            "--skip-clear",
+            action="store_true",
+            help="Skip truncating target slice tables before migrating.",
+        )
+
+    def _clear_target(self):
+        """Truncate all slice tables so the command is idempotent."""
+        with connection.cursor() as cur:
+            cur.execute(
+                """
+                TRUNCATE TABLE
+                    promotion_couponusage,
+                    promotion_couponproduct,
+                    promotion_coupon,
+                    payment_pendingrefund,
+                    payment_payment,
+                    ordering_jobmemo,
+                    ordering_job,
+                    ordering_order,
+                    catalog_product,
+                    catalog_productcategory,
+                    identity_user_user_permissions,
+                    identity_user_groups,
+                    identity_user
+                RESTART IDENTITY CASCADE;
+                """
+            )
+        self.stdout.write("  Cleared existing slice data from target DB.")
 
     def handle(self, *args, **options):
         legacy_dsn = options["legacy_dsn"]
         self.stdout.write(f"Connecting to legacy DB: {legacy_dsn}")
         self.started = time.perf_counter()
+
+        if not options["skip_clear"]:
+            self._clear_target()
 
         with closing(psycopg.connect(legacy_dsn)) as conn:
             self.migrate_users(conn)
