@@ -21,6 +21,8 @@ dependencies = [
     "whitenoise>=6.7",
     "argon2-cffi>=23.1",
     "channels-redis>=4.2",
+    "prometheus-client>=0.21.0",
+    "sentry-sdk[django]>=2.20.0",
 ]
 
 [dependency-groups]
