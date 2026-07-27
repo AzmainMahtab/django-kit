@@ -1,24 +1,19 @@
 """Tests for RecordNotificationUseCase."""
 
+import pytest
+
 from backend.apps.notification.domain.models import Notification
 from backend.apps.notification.use_cases.commands.record_notification import (
     RecordNotificationUseCase,
 )
+from backend.shared.event_bus import EventBus
 
-
-class MockNotificationRepository:
-    def __init__(self):
-        self.notifications = []
-
-    def create(self, notification: Notification) -> Notification:
-        notification.id = len(self.notifications) + 1
-        self.notifications.append(notification)
-        return notification
+pytestmark = pytest.mark.django_db
 
 
 def test_record_notification():
-    repo = MockNotificationRepository()
-    use_case = RecordNotificationUseCase(notification_repository=repo)
+    bus = EventBus()
+    use_case = RecordNotificationUseCase(event_bus=bus)
 
     result = use_case.execute(
         event_type="ordering.job_status_changed",
@@ -29,4 +24,4 @@ def test_record_notification():
 
     assert result["event_type"] == "ordering.job_status_changed"
     assert result["message"] == "Job moved to PREPRESS"
-    assert len(repo.notifications) == 1
+    assert Notification.objects.count() == 1

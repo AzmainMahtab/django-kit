@@ -1,48 +1,19 @@
 """Tests for CreateOrderUseCase."""
 
+import pytest
+
+from backend.apps.ordering.domain.events import OrderCreated
 from backend.apps.ordering.domain.models import Job, Order
 from backend.apps.ordering.domain.state_machine import JobStateMachine
 from backend.apps.ordering.use_cases.commands.create_order import CreateOrderUseCase
+from backend.shared.event_bus import EventBus
 
-
-class MockOrderRepository:
-    def __init__(self):
-        self._orders = {}
-        self._next_id = 1
-
-    def create(self, order: Order) -> Order:
-        order.id = self._next_id
-        self._next_id += 1
-        self._orders[order.id] = order
-        return order
-
-    def list_orders(self, filters=None):
-        return list(self._orders.values())
-
-
-class MockJobRepository:
-    def __init__(self):
-        self._jobs = {}
-        self._next_id = 1
-
-    def create(self, job: Job) -> Job:
-        job.id = self._next_id
-        self._next_id += 1
-        self._jobs[job.id] = job
-        return job
+pytestmark = pytest.mark.django_db
 
 
 def test_create_order_publishes_event():
-    from backend.shared.event_bus import EventBus
-
     bus = EventBus()
-    order_repo = MockOrderRepository()
-    job_repo = MockJobRepository()
-    use_case = CreateOrderUseCase(
-        order_repository=order_repo,
-        job_repository=job_repo,
-        event_bus=bus,
-    )
+    use_case = CreateOrderUseCase(event_bus=bus)
 
     received = []
     bus.subscribe("ordering.order_created", lambda e: received.append(e))

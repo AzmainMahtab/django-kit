@@ -9,13 +9,15 @@ from backend.apps.notification.use_cases.commands.record_notification import (
 from backend.apps.notification.use_cases.queries.list_notifications import (
     ListNotificationsUseCase,
 )
+from backend.shared.event_bus import EventBus
 
 
 class NotificationUseCases:
     """Facade that other modules use."""
 
-    def __init__(self):
-        self.commands = NotificationCommands()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.event_bus = event_bus
+        self.commands = NotificationCommands(event_bus=event_bus)
         self.queries = NotificationQueries()
 
     def record_notification(self, **kwargs):
@@ -26,8 +28,8 @@ class NotificationUseCases:
 
 
 class NotificationCommands:
-    def __init__(self):
-        self.record_notification = RecordNotificationUseCase()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.record_notification = RecordNotificationUseCase(event_bus=event_bus)
 
 
 class NotificationQueries:

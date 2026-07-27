@@ -7,9 +7,9 @@ from rest_framework.views import APIView
 
 from backend.apps.car.domain.exceptions import CarAlreadyExistsError, CarNotFoundError
 from backend.apps.car.interfaces.serializers import CarReadSerializer, CreateCarSerializer
+from backend.core.container import get_container
 from backend.shared.pagination import CustomPagination
 from backend.shared.permissions import rbac_permission
-from backend.shared.use_case_registry import get_car
 
 CarCreatePermission = rbac_permission("car:create")
 CarReadPermission = rbac_permission("car:read")
@@ -28,7 +28,7 @@ class CarListCreateView(APIView):
         responses={200: CarReadSerializer(many=True)},
     )
     def get(self, request):
-        cars = get_car().list_cars()
+        cars = get_container().car.list_cars()
         paginator = CustomPagination()
         page = paginator.paginate_queryset(cars, request)
         return paginator.get_paginated_response(CarReadSerializer(page, many=True).data)
@@ -45,7 +45,7 @@ class CarListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            car = get_car().create_car(**serializer.validated_data)
+            car = get_container().car.create_car(**serializer.validated_data)
         except CarAlreadyExistsError as exc:
             return Response(
                 {"detail": str(exc), "code": exc.default_code},
@@ -61,7 +61,7 @@ class CarListCreateView(APIView):
 
 
 class CarDetailView(APIView):
-    permission_classes = [CarReadPermission]
+    permission_classes = (CarReadPermission,)
 
     @extend_schema(
         tags=["Car"],
@@ -71,7 +71,7 @@ class CarDetailView(APIView):
     )
     def get(self, request, car_uuid: str):
         try:
-            car = get_car().get_car_by_uuid(uuid=car_uuid)
+            car = get_container().car.get_car_by_uuid(uuid=car_uuid)
         except CarNotFoundError as exc:
             return Response(
                 {"detail": str(exc), "code": exc.default_code},
@@ -82,7 +82,7 @@ class CarDetailView(APIView):
 
 
 class CarByOwnerView(APIView):
-    permission_classes = [CarReadPermission]
+    permission_classes = (CarReadPermission,)
 
     @extend_schema(
         tags=["Car"],
@@ -91,7 +91,7 @@ class CarByOwnerView(APIView):
         responses={200: CarReadSerializer(many=True)},
     )
     def get(self, request, owner_id: int):
-        cars = get_car().list_cars_by_owner(owner_id=owner_id)
+        cars = get_container().car.list_cars_by_owner(owner_id=owner_id)
         paginator = CustomPagination()
         page = paginator.paginate_queryset(cars, request)
         return paginator.get_paginated_response(CarReadSerializer(page, many=True).data)

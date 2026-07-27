@@ -16,7 +16,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = ("order_number", "user_id", "status", "created_at")
     list_filter = ("status",)
     search_fields = ("order_number",)
-    inlines = [JobInline]
+    inlines = (JobInline,)
 
 
 @admin.register(Job)

@@ -1,21 +1,14 @@
 """List permissions query."""
 
-from backend.apps.rbac.domain.repository_interfaces import RbacRepositoryInterface
+from backend.apps.rbac.domain.models import Permission
 from backend.shared.domain import UseCase
 
 
 class ListPermissionsUseCase(UseCase):
     """Pure read: list all permissions."""
 
-    def __init__(self, rbac_repository: RbacRepositoryInterface = None):
-        if rbac_repository is None:
-            from backend.apps.rbac.repositories.rbac_repository import RbacRepository
-            self.rbac_repo = RbacRepository()
-        else:
-            self.rbac_repo = rbac_repository
-
     def execute(self) -> list[dict]:
-        permissions = self.rbac_repo.list_permissions()
+        permissions = Permission.objects.all().order_by("name")
         return [
             {
                 "id": p.id,

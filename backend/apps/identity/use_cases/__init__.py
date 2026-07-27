@@ -12,13 +12,15 @@ from backend.apps.identity.use_cases.commands.update_user import UpdateUserUseCa
 from backend.apps.identity.use_cases.queries.get_profile import GetProfileUseCase
 from backend.apps.identity.use_cases.queries.get_user import GetUserUseCase
 from backend.apps.identity.use_cases.queries.list_users import ListUsersUseCase
+from backend.shared.event_bus import EventBus
 
 
 class IdentityUseCases:
     """Facade that other modules use. Internal structure is hidden."""
 
-    def __init__(self):
-        self.commands = IdentityCommands()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.event_bus = event_bus
+        self.commands = IdentityCommands(event_bus=event_bus)
         self.queries = IdentityQueries()
 
     def create_user(self, **kwargs):
@@ -50,13 +52,13 @@ class IdentityUseCases:
 
 
 class IdentityCommands:
-    def __init__(self):
-        self.create_user = CreateUserUseCase()
-        self.update_user = UpdateUserUseCase()
-        self.delete_user = DeleteUserUseCase()
-        self.login = LoginUseCase()
-        self.logout = LogoutUseCase()
-        self.refresh_token = RefreshTokenUseCase()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.create_user = CreateUserUseCase(event_bus=event_bus)
+        self.update_user = UpdateUserUseCase(event_bus=event_bus)
+        self.delete_user = DeleteUserUseCase(event_bus=event_bus)
+        self.login = LoginUseCase(event_bus=event_bus)
+        self.logout = LogoutUseCase(event_bus=event_bus)
+        self.refresh_token = RefreshTokenUseCase(event_bus=event_bus)
 
 
 class IdentityQueries:

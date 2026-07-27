@@ -4,8 +4,11 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
+from backend.shared.health_views import health_check
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("health/", health_check, name="health"),
     path("api/", include("backend.apps.identity.interfaces.urls")),
     path("api/otp/", include("backend.apps.otp.interfaces.urls")),
     path("api/rbac/", include("backend.apps.rbac.interfaces.urls")),

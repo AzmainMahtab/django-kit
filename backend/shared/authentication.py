@@ -37,8 +37,8 @@ class JWTAuthentication(authentication.BaseAuthentication):
     def _authenticate_credentials(self, token: str):
         try:
             payload = self.token_service.decode(token)
-        except jwt.ExpiredSignatureError:
-            raise exceptions.AuthenticationFailed("Token has expired.")
+        except jwt.ExpiredSignatureError as exc:
+            raise exceptions.AuthenticationFailed("Token has expired.") from exc
         except jwt.InvalidTokenError as exc:
             raise exceptions.AuthenticationFailed(f"Invalid token: {exc}") from exc
 

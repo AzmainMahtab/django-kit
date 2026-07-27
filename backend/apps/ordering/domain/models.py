@@ -14,7 +14,7 @@ class Order(models.Model):
 
     class Meta:
         db_table = "ordering_order"
-        ordering = ["-created_at"]
+        ordering = ("-created_at",)
 
     def __str__(self) -> str:
         return self.order_number
@@ -37,7 +37,7 @@ class Job(models.Model):
 
     class Meta:
         db_table = "ordering_job"
-        ordering = ["-created_at"]
+        ordering = ("-created_at",)
 
     def __str__(self) -> str:
         return self.job_id

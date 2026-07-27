@@ -24,6 +24,6 @@ class DomainEvent:
 class UseCase:
     """Base class for all use cases."""
 
-    def execute(self, **kwargs):
+    def execute(self, *args, **kwargs):
         """Every use case exposes exactly one entry point."""
         raise NotImplementedError

@@ -1,6 +1,7 @@
 """RBAC domain models."""
 
-from django.conf import settings
+from __future__ import annotations
+
 from django.db import models
 
 
@@ -15,7 +16,7 @@ class Permission(models.Model):
 
     class Meta:
         db_table = "rbac_permission"
-        ordering = ["name"]
+        ordering = ("name",)
 
     def __str__(self) -> str:
         return self.name
@@ -26,7 +27,7 @@ class Role(models.Model):
 
     name = models.CharField(max_length=64, unique=True, db_index=True)
     description = models.TextField(blank=True, default="")
-    permissions = models.ManyToManyField(
+    permissions: models.ManyToManyField[Permission, RolePermission] = models.ManyToManyField(
         Permission,
         through="RolePermission",
         related_name="roles",
@@ -35,7 +36,7 @@ class Role(models.Model):
 
     class Meta:
         db_table = "rbac_role"
-        ordering = ["name"]
+        ordering = ("name",)
 
     def __str__(self) -> str:
         return self.name
@@ -54,42 +55,26 @@ class RolePermission(models.Model):
         on_delete=models.CASCADE,
         related_name="role_permissions",
     )
-    assigned_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="assigned_role_permissions",
-    )
+    assigned_by_id = models.IntegerField(null=True, blank=True, db_index=True)
     assigned_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "rbac_role_permission"
-        unique_together = [("role", "permission")]
+        unique_together = (("role", "permission"),)
 
 
 class UserRole(models.Model):
     """Through model linking a User to a Role."""
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="user_roles",
-    )
+    user_id = models.IntegerField(db_index=True)
     role = models.ForeignKey(
         Role,
         on_delete=models.CASCADE,
         related_name="user_roles",
     )
-    assigned_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="assigned_user_roles",
-    )
+    assigned_by_id = models.IntegerField(null=True, blank=True, db_index=True)
     assigned_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "rbac_user_role"
-        unique_together = [("user", "role")]
+        unique_together = (("user_id", "role"),)

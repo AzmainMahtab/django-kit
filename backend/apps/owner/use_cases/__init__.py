@@ -10,13 +10,15 @@ from backend.apps.owner.use_cases.queries.get_owner import (
     GetOwnerByUuidUseCase,
 )
 from backend.apps.owner.use_cases.queries.list_owners import ListOwnersUseCase
+from backend.shared.event_bus import EventBus
 
 
 class OwnerUseCases:
-    """Facade exposed through the use-case registry."""
+    """Facade exposed through the dependency container."""
 
-    def __init__(self):
-        self.commands = OwnerCommands()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.event_bus = event_bus
+        self.commands = OwnerCommands(event_bus=event_bus)
         self.queries = OwnerQueries()
 
     def create_owner(self, **kwargs):
@@ -36,8 +38,8 @@ class OwnerUseCases:
 
 
 class OwnerCommands:
-    def __init__(self):
-        self.create_owner = CreateOwnerUseCase()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.create_owner = CreateOwnerUseCase(event_bus=event_bus)
 
 
 class OwnerQueries:

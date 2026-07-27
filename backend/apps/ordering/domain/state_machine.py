@@ -1,5 +1,7 @@
 """Production job state machine."""
 
+from typing import ClassVar
+
 from backend.shared.exceptions import BusinessValidationError
 
 
@@ -14,7 +16,7 @@ class JobStateMachine:
     CANCELED = "CANCELED"
     COMPLETE = "COMPLETE"
 
-    TRANSITIONS = {
+    TRANSITIONS: ClassVar[dict[str, list[str]]] = {
         PENDING: [RECEIVED_ARTWORK, HOLD, CANCELED],
         RECEIVED_ARTWORK: [PREPRESS, HOLD, CANCELED],
         PREPRESS: [BATCHED, HOLD, CANCELED],
@@ -24,7 +26,7 @@ class JobStateMachine:
         COMPLETE: [],
     }
 
-    FILE_EDITABLE_STATUSES = {PENDING, HOLD}
+    FILE_EDITABLE_STATUSES: ClassVar[set[str]] = {PENDING, HOLD}
 
     @classmethod
     def can_transition(cls, from_status: str, to_status: str) -> bool:

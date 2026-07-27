@@ -17,11 +17,10 @@ import inspect
 import logging
 import uuid
 from collections import defaultdict
-from dataclasses import asdict
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from django.db import transaction
-from django.utils.module_loading import import_string
 
 from backend.shared.domain import DomainEvent
 
@@ -127,7 +126,7 @@ class EventBus:
 
     async def _invoke_async(self, handler: Handler, event: DomainEvent) -> None:
         try:
-            await handler(event)  # type: ignore[misc]
+            await handler(event)
         except Exception:
             logger.exception("Error handling async event %s", event.event_type)
 

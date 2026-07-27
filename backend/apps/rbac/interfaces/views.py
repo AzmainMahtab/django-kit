@@ -15,7 +15,7 @@ from backend.apps.rbac.interfaces.serializers import (
     RoleUserAssignSerializer,
     UserPermissionCheckSerializer,
 )
-from backend.shared.use_case_registry import registry
+from backend.core.container import get_container
 
 
 class IsRbacAdmin:
@@ -26,7 +26,7 @@ class IsRbacAdmin:
             return True
         if not request.user or not request.user.is_authenticated:
             return False
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         permissions = rbac.queries.get_user_permissions.execute(user_id=request.user.id)
         return any(p["name"].startswith("rbac:") for p in permissions)
 
@@ -41,7 +41,7 @@ class _RbacPermission(IsAuthenticated):
 
 
 class PermissionListCreateView(APIView):
-    permission_classes = [_RbacPermission]
+    permission_classes = (_RbacPermission,)
 
     @extend_schema(
         tags=["RBAC"],
@@ -50,7 +50,7 @@ class PermissionListCreateView(APIView):
         responses={200: PermissionReadSerializer(many=True)},
     )
     def get(self, request):
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         permissions = rbac.queries.list_permissions.execute()
         return Response(PermissionReadSerializer(permissions, many=True).data)
 
@@ -65,7 +65,7 @@ class PermissionListCreateView(APIView):
         serializer = PermissionCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         permission = rbac.commands.create_permission.execute(**serializer.validated_data)
         return Response(
             PermissionReadSerializer(permission).data,
@@ -74,7 +74,7 @@ class PermissionListCreateView(APIView):
 
 
 class RoleListCreateView(APIView):
-    permission_classes = [_RbacPermission]
+    permission_classes = (_RbacPermission,)
 
     @extend_schema(
         tags=["RBAC"],
@@ -83,7 +83,7 @@ class RoleListCreateView(APIView):
         responses={200: RoleReadSerializer(many=True)},
     )
     def get(self, request):
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         roles = rbac.queries.list_roles.execute()
         return Response(RoleReadSerializer(roles, many=True).data)
 
@@ -98,7 +98,7 @@ class RoleListCreateView(APIView):
         serializer = RoleCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         role = rbac.commands.create_role.execute(**serializer.validated_data)
         return Response(
             RoleReadSerializer(role).data,
@@ -107,7 +107,7 @@ class RoleListCreateView(APIView):
 
 
 class RoleDetailView(APIView):
-    permission_classes = [_RbacPermission]
+    permission_classes = (_RbacPermission,)
 
     @extend_schema(
         tags=["RBAC"],
@@ -116,13 +116,13 @@ class RoleDetailView(APIView):
         responses={200: RoleReadSerializer, 404: None},
     )
     def get(self, request, role_id: int):
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         role = rbac.queries.get_role.execute(role_id=role_id)
         return Response(RoleReadSerializer(role).data)
 
 
 class RolePermissionAssignView(APIView):
-    permission_classes = [_RbacPermission]
+    permission_classes = (_RbacPermission,)
 
     @extend_schema(
         tags=["RBAC"],
@@ -135,7 +135,7 @@ class RolePermissionAssignView(APIView):
         serializer = RolePermissionAssignSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         rbac.commands.assign_permission_to_role.execute(
             role_id=role_id,
             permission_id=serializer.validated_data["permission_id"],
@@ -154,7 +154,7 @@ class RolePermissionAssignView(APIView):
         serializer = RolePermissionAssignSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         rbac.commands.revoke_permission_from_role.execute(
             role_id=role_id,
             permission_id=serializer.validated_data["permission_id"],
@@ -163,7 +163,7 @@ class RolePermissionAssignView(APIView):
 
 
 class RoleUserAssignView(APIView):
-    permission_classes = [_RbacPermission]
+    permission_classes = (_RbacPermission,)
 
     @extend_schema(
         tags=["RBAC"],
@@ -176,7 +176,7 @@ class RoleUserAssignView(APIView):
         serializer = RoleUserAssignSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         rbac.commands.assign_role_to_user.execute(
             user_id=serializer.validated_data["user_id"],
             role_id=role_id,
@@ -195,7 +195,7 @@ class RoleUserAssignView(APIView):
         serializer = RoleUserAssignSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         rbac.commands.revoke_role_from_user.execute(
             user_id=serializer.validated_data["user_id"],
             role_id=role_id,
@@ -204,7 +204,7 @@ class RoleUserAssignView(APIView):
 
 
 class UserPermissionListView(APIView):
-    permission_classes = [_RbacPermission]
+    permission_classes = (_RbacPermission,)
 
     @extend_schema(
         tags=["RBAC"],
@@ -213,13 +213,13 @@ class UserPermissionListView(APIView):
         responses={200: PermissionReadSerializer(many=True), 404: None},
     )
     def get(self, request, user_id: int):
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         permissions = rbac.queries.get_user_permissions.execute(user_id=user_id)
         return Response(PermissionReadSerializer(permissions, many=True).data)
 
 
 class UserRoleListView(APIView):
-    permission_classes = [_RbacPermission]
+    permission_classes = (_RbacPermission,)
 
     @extend_schema(
         tags=["RBAC"],
@@ -228,13 +228,13 @@ class UserRoleListView(APIView):
         responses={200: RoleReadSerializer(many=True), 404: None},
     )
     def get(self, request, user_id: int):
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         roles = rbac.queries.get_user_roles.execute(user_id=user_id)
         return Response(RoleReadSerializer(roles, many=True).data)
 
 
 class UserPermissionCheckView(APIView):
-    permission_classes = [_RbacPermission]
+    permission_classes = (_RbacPermission,)
 
     @extend_schema(
         tags=["RBAC"],
@@ -247,7 +247,7 @@ class UserPermissionCheckView(APIView):
         serializer = UserPermissionCheckSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        rbac = registry.get("rbac")
+        rbac = get_container().rbac
         result = rbac.queries.check_user_permission.execute(
             user_id=user_id,
             permission=serializer.validated_data["permission"],

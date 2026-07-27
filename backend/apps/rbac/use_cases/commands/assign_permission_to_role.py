@@ -1,21 +1,17 @@
 """Assign permission to role command."""
 
 from backend.apps.rbac.domain.events import PermissionAssignedToRole
-from backend.apps.rbac.domain.repository_interfaces import RbacRepositoryInterface
+from backend.apps.rbac.domain.models import Permission, Role, RolePermission
 from backend.shared.domain import UseCase
-from backend.shared.event_bus import event_bus
+from backend.shared.event_bus import EventBus
 from backend.shared.exceptions import BusinessValidationError, NotFoundError
 
 
 class AssignPermissionToRoleUseCase(UseCase):
     """Assign a permission to a role and publish a domain event."""
 
-    def __init__(self, rbac_repository: RbacRepositoryInterface = None):
-        if rbac_repository is None:
-            from backend.apps.rbac.repositories.rbac_repository import RbacRepository
-            self.rbac_repo = RbacRepository()
-        else:
-            self.rbac_repo = rbac_repository
+    def __init__(self, event_bus: EventBus) -> None:
+        self.event_bus = event_bus
 
     def execute(
         self,
@@ -24,27 +20,27 @@ class AssignPermissionToRoleUseCase(UseCase):
         assigned_by_id: int | None = None,
     ) -> dict:
         try:
-            role = self.rbac_repo.get_role_by_id(role_id)
-        except Exception as exc:
+            role = Role.objects.get(pk=role_id)
+        except Role.DoesNotExist as exc:
             raise NotFoundError(f"Role with id {role_id} not found.") from exc
 
         try:
-            permission = self.rbac_repo.get_permission_by_id(permission_id)
-        except Exception as exc:
+            permission = Permission.objects.get(pk=permission_id)
+        except Permission.DoesNotExist as exc:
             raise NotFoundError(f"Permission with id {permission_id} not found.") from exc
 
-        if self.rbac_repo.check_permission_on_role(role_id=role_id, permission_id=permission_id):
+        if RolePermission.objects.filter(role_id=role_id, permission_id=permission_id).exists():
             raise BusinessValidationError(
                 f"Permission '{permission.name}' is already assigned to role '{role.name}'."
             )
 
-        self.rbac_repo.assign_permission_to_role(
+        RolePermission.objects.create(
             role_id=role_id,
             permission_id=permission_id,
             assigned_by_id=assigned_by_id,
         )
 
-        event_bus.publish(
+        self.event_bus.publish(
             PermissionAssignedToRole(
                 aggregate_id=role_id,
                 data={

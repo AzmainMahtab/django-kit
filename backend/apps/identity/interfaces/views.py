@@ -16,8 +16,8 @@ from backend.apps.identity.interfaces.serializers import (
     UserReadSerializer,
     UserUpdateSerializer,
 )
+from backend.core.container import get_container
 from backend.shared.pagination import CustomPagination
-from backend.shared.use_case_registry import get_identity
 
 
 class UserListCreateView(APIView):
@@ -45,7 +45,7 @@ class UserListCreateView(APIView):
         if params.validated_data.get("is_active") is not None:
             filters["is_active"] = params.validated_data["is_active"]
 
-        identity = get_identity()
+        identity = get_container().identity
         users = identity.queries.list_users.execute(filters=filters)
 
         paginator = CustomPagination()
@@ -75,14 +75,14 @@ class UserListCreateView(APIView):
         serializer = UserCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        identity = get_identity()
+        identity = get_container().identity
         result = identity.commands.create_user.execute(**serializer.validated_data)
 
         return Response(UserReadSerializer(result).data, status=status.HTTP_201_CREATED)
 
 
 class UserDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     @extend_schema(
         tags=["Identity"],
@@ -91,7 +91,7 @@ class UserDetailView(APIView):
         responses={200: UserReadSerializer, 404: None},
     )
     def get(self, request, user_id: int):
-        identity = get_identity()
+        identity = get_container().identity
         result = identity.queries.get_user.execute(user_id=user_id)
         return Response(UserReadSerializer(result).data)
 
@@ -106,7 +106,7 @@ class UserDetailView(APIView):
         serializer = UserUpdateSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        identity = get_identity()
+        identity = get_container().identity
         result = identity.commands.update_user.execute(user_id=user_id, **serializer.validated_data)
         return Response(UserReadSerializer(result).data)
 
@@ -117,13 +117,14 @@ class UserDetailView(APIView):
         responses={204: None, 404: None},
     )
     def delete(self, request, user_id: int):
-        identity = get_identity()
+        identity = get_container().identity
         identity.commands.delete_user.execute(user_id=user_id)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class LoginView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny,)
+    throttle_scope = "login"
 
     @extend_schema(
         tags=["Identity"],
@@ -136,13 +137,14 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        identity = get_identity()
+        identity = get_container().identity
         tokens = identity.commands.login.execute(**serializer.validated_data)
         return Response(TokenResponseSerializer(tokens).data)
 
 
 class RefreshView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = (AllowAny,)
+    throttle_scope = "refresh"
 
     @extend_schema(
         tags=["Identity"],
@@ -155,13 +157,13 @@ class RefreshView(APIView):
         serializer = RefreshSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        identity = get_identity()
+        identity = get_container().identity
         tokens = identity.commands.refresh_token.execute(**serializer.validated_data)
         return Response(TokenResponseSerializer(tokens).data)
 
 
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     @extend_schema(
         tags=["Identity"],
@@ -179,7 +181,7 @@ class LogoutView(APIView):
         if auth_header.startswith("Bearer "):
             access_token = auth_header.split(" ", 1)[1]
 
-        identity = get_identity()
+        identity = get_container().identity
         identity.commands.logout.execute(
             refresh_token=serializer.validated_data["refresh_token"],
             access_token=access_token,
@@ -188,7 +190,7 @@ class LogoutView(APIView):
 
 
 class ProfileView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     @extend_schema(
         tags=["Identity"],
@@ -197,6 +199,6 @@ class ProfileView(APIView):
         responses={200: UserReadSerializer},
     )
     def get(self, request):
-        identity = get_identity()
+        identity = get_container().identity
         result = identity.queries.get_profile.execute(user_id=request.user.id)
         return Response(UserReadSerializer(result).data)

@@ -19,13 +19,15 @@ from backend.apps.rbac.use_cases.queries.get_user_permissions import GetUserPerm
 from backend.apps.rbac.use_cases.queries.get_user_roles import GetUserRolesUseCase
 from backend.apps.rbac.use_cases.queries.list_permissions import ListPermissionsUseCase
 from backend.apps.rbac.use_cases.queries.list_roles import ListRolesUseCase
+from backend.shared.event_bus import EventBus
 
 
 class RbacUseCases:
-    """Facade exposed through the use-case registry."""
+    """Facade exposed through the dependency container."""
 
-    def __init__(self):
-        self.commands = RbacCommands()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.event_bus = event_bus
+        self.commands = RbacCommands(event_bus=event_bus)
         self.queries = RbacQueries()
 
     def create_permission(self, **kwargs):
@@ -66,13 +68,13 @@ class RbacUseCases:
 
 
 class RbacCommands:
-    def __init__(self):
-        self.create_permission = CreatePermissionUseCase()
-        self.create_role = CreateRoleUseCase()
-        self.assign_role_to_user = AssignRoleToUserUseCase()
-        self.revoke_role_from_user = RevokeRoleFromUserUseCase()
-        self.assign_permission_to_role = AssignPermissionToRoleUseCase()
-        self.revoke_permission_from_role = RevokePermissionFromRoleUseCase()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.create_permission = CreatePermissionUseCase(event_bus=event_bus)
+        self.create_role = CreateRoleUseCase(event_bus=event_bus)
+        self.assign_role_to_user = AssignRoleToUserUseCase(event_bus=event_bus)
+        self.revoke_role_from_user = RevokeRoleFromUserUseCase(event_bus=event_bus)
+        self.assign_permission_to_role = AssignPermissionToRoleUseCase(event_bus=event_bus)
+        self.revoke_permission_from_role = RevokePermissionFromRoleUseCase(event_bus=event_bus)
 
 
 class RbacQueries:

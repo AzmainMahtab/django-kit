@@ -6,11 +6,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from backend.apps.notification.interfaces.serializers import NotificationSerializer
-from backend.shared.use_case_registry import get_notification
+from backend.core.container import get_container
 
 
 class NotificationListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     @extend_schema(
         tags=["Notification"],
@@ -19,6 +19,6 @@ class NotificationListView(APIView):
         responses={200: NotificationSerializer(many=True)},
     )
     def get(self, request):
-        notification = get_notification()
+        notification = get_container().notification
         result = notification.queries.list_notifications.execute()
         return Response(NotificationSerializer(result, many=True).data)

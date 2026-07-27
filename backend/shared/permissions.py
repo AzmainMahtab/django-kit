@@ -2,8 +2,6 @@
 
 from rest_framework import permissions
 
-from backend.shared.use_case_registry import registry
-
 
 class IsAdmin(permissions.BasePermission):
     """Allows access only to admin users."""
@@ -16,7 +14,7 @@ def rbac_permission(permission_name: str):
     """Factory returning a DRF permission class for an RBAC permission name.
 
     Staff users bypass the RBAC check. The permission class queries the
-    rbac module through the use-case registry.
+    rbac module through the dependency container.
     """
 
     class _RbacPermission(permissions.BasePermission):
@@ -25,7 +23,9 @@ def rbac_permission(permission_name: str):
                 return False
             if request.user.is_staff:
                 return True
-            rbac = registry.get("rbac")
+            from backend.core.container import get_container
+
+            rbac = get_container().rbac
             return rbac.queries.check_user_permission.execute(
                 user_id=request.user.id,
                 permission=permission_name,

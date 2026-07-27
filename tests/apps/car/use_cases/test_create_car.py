@@ -5,69 +5,35 @@ import pytest
 from backend.apps.car.domain.exceptions import CarAlreadyExistsError
 from backend.apps.car.domain.models import Car
 from backend.apps.car.use_cases.commands.create_car import CreateCarUseCase
+from backend.apps.owner.domain.models import Owner
+from backend.shared.event_bus import EventBus
+from backend.shared.exceptions import NotFoundError
 
-
-class MockCarRepository:
-    def __init__(self, existing_license_plates=None):
-        self._cars = {}
-        self._next_id = 1
-        self._existing_license_plates = set(existing_license_plates or [])
-
-    def get_by_id(self, car_id: int) -> Car:
-        return self._cars[car_id]
-
-    def get_by_uuid(self, uuid: str):
-        for car in self._cars.values():
-            if str(car.uuid) == str(uuid):
-                return car
-        return None
-
-    def get_by_license_plate(self, license_plate: str):
-        if license_plate in self._existing_license_plates:
-            car = Car(
-                owner_id=1,
-                make="Toyota",
-                model="Camry",
-                year=2020,
-                color="Blue",
-                license_plate=license_plate,
-            )
-            car.id = self._next_id
-            return car
-        return None
-
-    def create(self, car: Car) -> Car:
-        car.id = self._next_id
-        self._next_id += 1
-        self._cars[car.id] = car
-        self._existing_license_plates.add(car.license_plate)
-        return car
-
-    def list_by_owner(self, owner_id: int):
-        return [c for c in self._cars.values() if c.owner_id == owner_id]
-
-    def list_all(self):
-        return list(self._cars.values())
+pytestmark = pytest.mark.django_db
 
 
 class MockOwnerFacade:
     """Test double for the owner module facade port."""
 
+    def __init__(self, owner: Owner | None = None):
+        self.owner = owner
+
     def get_owner_by_id(self, owner_id: int):
-        if owner_id == 99:
-            raise Exception("Owner not found")
-        return {"id": owner_id}
+        if self.owner is None or self.owner.id != owner_id:
+            raise Owner.DoesNotExist("Owner not found")
+        return self.owner
 
 
 def test_create_car_success():
-    repo = MockCarRepository()
+    owner = Owner.objects.create(user_id=1, address="123 Main St")
+    bus = EventBus()
     use_case = CreateCarUseCase(
-        car_repository=repo,
-        owner_facade=MockOwnerFacade(),
+        event_bus=bus,
+        owner_facade=MockOwnerFacade(owner),
     )
 
     car = use_case.execute(
-        owner_id=1,
+        owner_id=owner.id,
         make="Toyota",
         model="Camry",
         year=2020,
@@ -75,21 +41,30 @@ def test_create_car_success():
         license_plate="ABC123",
     )
 
-    assert car.owner_id == 1
+    assert car.owner_id == owner.id
     assert car.make == "Toyota"
     assert car.license_plate == "ABC123"
 
 
 def test_create_car_duplicate_license_plate_raises():
-    repo = MockCarRepository(existing_license_plates=["ABC123"])
+    owner = Owner.objects.create(user_id=1, address="123 Main St")
+    Car.objects.create(
+        owner_id=owner.id,
+        make="Toyota",
+        model="Camry",
+        year=2020,
+        color="Blue",
+        license_plate="ABC123",
+    )
+    bus = EventBus()
     use_case = CreateCarUseCase(
-        car_repository=repo,
-        owner_facade=MockOwnerFacade(),
+        event_bus=bus,
+        owner_facade=MockOwnerFacade(owner),
     )
 
     with pytest.raises(CarAlreadyExistsError) as exc:
         use_case.execute(
-            owner_id=1,
+            owner_id=owner.id,
             make="Toyota",
             model="Camry",
             year=2020,
@@ -101,13 +76,13 @@ def test_create_car_duplicate_license_plate_raises():
 
 
 def test_create_car_missing_owner_raises():
-    repo = MockCarRepository()
+    bus = EventBus()
     use_case = CreateCarUseCase(
-        car_repository=repo,
+        event_bus=bus,
         owner_facade=MockOwnerFacade(),
     )
 
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(NotFoundError) as exc:
         use_case.execute(
             owner_id=99,
             make="Toyota",
@@ -118,3 +93,26 @@ def test_create_car_missing_owner_raises():
         )
 
     assert "not found" in str(exc.value).lower()
+
+
+def test_create_car_publishes_event():
+    owner = Owner.objects.create(user_id=1, address="123 Main St")
+    bus = EventBus()
+    received = []
+    bus.subscribe("car.car_created", received.append)
+    use_case = CreateCarUseCase(
+        event_bus=bus,
+        owner_facade=MockOwnerFacade(owner),
+    )
+
+    car = use_case.execute(
+        owner_id=owner.id,
+        make="Toyota",
+        model="Camry",
+        year=2020,
+        color="Blue",
+        license_plate="ABC123",
+    )
+
+    assert len(received) == 1
+    assert received[0].aggregate_id == car.id

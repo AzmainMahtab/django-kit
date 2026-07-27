@@ -1,7 +1,7 @@
 """Get order query."""
 
 from backend.apps.ordering.domain.exceptions import OrderNotFoundError
-from backend.apps.ordering.domain.repository_interfaces import OrderRepositoryInterface
+from backend.apps.ordering.domain.models import Order
 from backend.shared.domain import UseCase
 from backend.shared.types import JobDTO, OrderDTO
 
@@ -9,18 +9,10 @@ from backend.shared.types import JobDTO, OrderDTO
 class GetOrderUseCase(UseCase):
     """Read a single order by id."""
 
-    def __init__(self, order_repository: OrderRepositoryInterface = None):
-        if order_repository is None:
-            from backend.apps.ordering.repositories.order_repository import OrderRepository
-
-            self.order_repo = OrderRepository()
-        else:
-            self.order_repo = order_repository
-
     def execute(self, order_id: int) -> OrderDTO:
         try:
-            order = self.order_repo.get_by_id(order_id)
-        except Exception as exc:
+            order = Order.objects.prefetch_related("jobs").get(pk=order_id)
+        except Order.DoesNotExist as exc:
             raise OrderNotFoundError(f"Order with id {order_id} not found.") from exc
 
         return OrderDTO(
