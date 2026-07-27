@@ -9,13 +9,15 @@ from backend.apps.ordering.use_cases.commands.transition_job_status import (
 )
 from backend.apps.ordering.use_cases.queries.get_order import GetOrderUseCase
 from backend.apps.ordering.use_cases.queries.list_orders import ListOrdersUseCase
+from backend.shared.event_bus import EventBus
 
 
 class OrderingUseCases:
     """Facade that other modules use. Internal structure is hidden."""
 
-    def __init__(self):
-        self.commands = OrderingCommands()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.event_bus = event_bus
+        self.commands = OrderingCommands(event_bus=event_bus)
         self.queries = OrderingQueries()
 
     def create_order(self, **kwargs):
@@ -32,9 +34,9 @@ class OrderingUseCases:
 
 
 class OrderingCommands:
-    def __init__(self):
-        self.create_order = CreateOrderUseCase()
-        self.transition_job_status = TransitionJobStatusUseCase()
+    def __init__(self, event_bus: EventBus) -> None:
+        self.create_order = CreateOrderUseCase(event_bus=event_bus)
+        self.transition_job_status = TransitionJobStatusUseCase(event_bus=event_bus)
 
 
 class OrderingQueries:

@@ -11,11 +11,11 @@ from backend.apps.ordering.interfaces.serializers import (
     OrderCreateSerializer,
     OrderSerializer,
 )
-from backend.shared.use_case_registry import get_ordering
+from backend.core.container import get_container
 
 
 class OrderListCreateView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     @extend_schema(
         tags=["Ordering"],
@@ -24,7 +24,7 @@ class OrderListCreateView(APIView):
         responses={200: OrderSerializer(many=True)},
     )
     def get(self, request):
-        ordering = get_ordering()
+        ordering = get_container().ordering
         result = ordering.queries.list_orders.execute()
         return Response(OrderSerializer(result, many=True).data)
 
@@ -39,13 +39,13 @@ class OrderListCreateView(APIView):
         serializer = OrderCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ordering = get_ordering()
+        ordering = get_container().ordering
         result = ordering.commands.create_order.execute(**serializer.validated_data)
         return Response(OrderSerializer(result).data, status=status.HTTP_201_CREATED)
 
 
 class OrderDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     @extend_schema(
         tags=["Ordering"],
@@ -54,13 +54,13 @@ class OrderDetailView(APIView):
         responses={200: OrderSerializer, 404: None},
     )
     def get(self, request, order_id: int):
-        ordering = get_ordering()
+        ordering = get_container().ordering
         result = ordering.queries.get_order.execute(order_id=order_id)
         return Response(OrderSerializer(result).data)
 
 
 class JobStatusTransitionView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     @extend_schema(
         tags=["Ordering"],
@@ -73,7 +73,7 @@ class JobStatusTransitionView(APIView):
         serializer = JobStatusTransitionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ordering = get_ordering()
+        ordering = get_container().ordering
         result = ordering.commands.transition_job_status.execute(
             job_id=job_id,
             user_id=request.user.id,

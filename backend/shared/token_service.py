@@ -6,7 +6,7 @@ can use the same authentication semantics (token type, jti, exp, sub).
 
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import jwt
 from django.conf import settings
@@ -22,14 +22,16 @@ class TokenService:
         refresh_lifetime_seconds: int | None = None,
         algorithm: str = "HS256",
     ):
-        self._secret = secret or getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
-        self._access_lifetime = access_lifetime_seconds or getattr(
-            settings, "JWT_ACCESS_TOKEN_LIFETIME_SECONDS", 900
+        self._secret: str = secret or cast(
+            str, getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
         )
-        self._refresh_lifetime = refresh_lifetime_seconds or getattr(
-            settings, "JWT_REFRESH_TOKEN_LIFETIME_SECONDS", 604800
+        self._access_lifetime: int = access_lifetime_seconds or cast(
+            int, getattr(settings, "JWT_ACCESS_TOKEN_LIFETIME_SECONDS", 900)
         )
-        self._algorithm = algorithm
+        self._refresh_lifetime: int = refresh_lifetime_seconds or cast(
+            int, getattr(settings, "JWT_REFRESH_TOKEN_LIFETIME_SECONDS", 604800)
+        )
+        self._algorithm: str = algorithm
 
     def create_token_pair(self, user_id: int) -> dict[str, str]:
         """Return a fresh access/refresh token pair for ``user_id``."""

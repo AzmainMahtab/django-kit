@@ -1,16 +1,9 @@
-"""Ordering domain events."""
+"""Ordering domain events.
 
-from dataclasses import dataclass
-from typing import ClassVar
+Cross-module events are defined in ``backend.shared.events`` and re-exported
+here so the rest of the ordering module can import them from a local namespace.
+"""
 
-from backend.shared.domain import DomainEvent
+from backend.shared.events import JobStatusChanged, OrderCreated
 
-
-@dataclass
-class OrderCreated(DomainEvent):
-    event_type: ClassVar[str] = "ordering.order_created"
-
-
-@dataclass
-class JobStatusChanged(DomainEvent):
-    event_type: ClassVar[str] = "ordering.job_status_changed"
+__all__ = ["JobStatusChanged", "OrderCreated"]

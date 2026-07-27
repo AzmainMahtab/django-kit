@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Optional
 
 
 class Money(Decimal):
@@ -13,7 +12,7 @@ class Money(Decimal):
 
 @dataclass(frozen=True)
 class AddressDTO:
-    id: Optional[int] = None
+    id: int | None = None
     name: str = ""
     company: str = ""
     attention: str = ""

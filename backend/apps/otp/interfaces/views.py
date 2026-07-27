@@ -18,11 +18,12 @@ from backend.apps.otp.interfaces.serializers import (
     ValidateOtpResponseSerializer,
     ValidateOtpSerializer,
 )
-from backend.shared.use_case_registry import get_otp
+from backend.core.container import get_container
 
 
 class GenerateOtpView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
+    throttle_scope = "otp"
 
     @extend_schema(
         tags=["OTP"],
@@ -35,7 +36,7 @@ class GenerateOtpView(APIView):
         serializer = GenerateOtpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        otp = get_otp().generate_otp(
+        otp = get_container().otp.generate_otp(
             user_id=serializer.validated_data["user_id"],
             otp_type=OtpType(serializer.validated_data["otp_type"]),
         )
@@ -43,7 +44,8 @@ class GenerateOtpView(APIView):
 
 
 class ValidateOtpView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
+    throttle_scope = "otp"
 
     @extend_schema(
         tags=["OTP"],
@@ -57,7 +59,7 @@ class ValidateOtpView(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            result = get_otp().validate_otp(
+            result = get_container().otp.validate_otp(
                 user_id=serializer.validated_data["user_id"],
                 otp_type=OtpType(serializer.validated_data["otp_type"]),
                 code=serializer.validated_data["code"],

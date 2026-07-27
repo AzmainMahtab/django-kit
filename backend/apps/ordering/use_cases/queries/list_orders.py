@@ -1,23 +1,18 @@
 """List orders query."""
 
-from backend.apps.ordering.domain.repository_interfaces import OrderRepositoryInterface
+from backend.apps.ordering.domain.models import Order
 from backend.shared.domain import UseCase
-from backend.shared.types import OrderDTO
+from backend.shared.types import JobDTO, OrderDTO
 
 
 class ListOrdersUseCase(UseCase):
     """Read a list of orders with optional filters."""
 
-    def __init__(self, order_repository: OrderRepositoryInterface = None):
-        if order_repository is None:
-            from backend.apps.ordering.repositories.order_repository import OrderRepository
+    def execute(self, filters: dict | None = None) -> list[OrderDTO]:
+        qs = Order.objects.prefetch_related("jobs").order_by("-created_at")
+        if filters:
+            qs = qs.filter(**filters)
 
-            self.order_repo = OrderRepository()
-        else:
-            self.order_repo = order_repository
-
-    def execute(self, filters: dict = None) -> list[OrderDTO]:
-        orders = self.order_repo.list_orders(filters)
         return [
             OrderDTO(
                 id=o.id,
@@ -35,5 +30,5 @@ class ListOrdersUseCase(UseCase):
                     for j in o.jobs.all()
                 ],
             )
-            for o in orders
+            for o in qs
         ]

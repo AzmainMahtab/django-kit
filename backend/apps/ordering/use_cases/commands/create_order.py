@@ -2,40 +2,17 @@
 
 from backend.apps.ordering.domain.events import OrderCreated
 from backend.apps.ordering.domain.models import Job, Order
-from backend.apps.ordering.domain.repository_interfaces import (
-    JobRepositoryInterface,
-    OrderRepositoryInterface,
-)
 from backend.apps.ordering.domain.state_machine import JobStateMachine
 from backend.shared.domain import UseCase
-from backend.shared.event_bus import EventBus, event_bus as global_event_bus
+from backend.shared.event_bus import EventBus
 from backend.shared.types import JobDTO, OrderDTO
 
 
 class CreateOrderUseCase(UseCase):
     """Create a new order with one or more production jobs."""
 
-    def __init__(
-        self,
-        order_repository: OrderRepositoryInterface = None,
-        job_repository: JobRepositoryInterface = None,
-        event_bus: EventBus = None,
-    ):
-        if order_repository is None:
-            from backend.apps.ordering.repositories.order_repository import OrderRepository
-
-            self.order_repo = OrderRepository()
-        else:
-            self.order_repo = order_repository
-
-        if job_repository is None:
-            from backend.apps.ordering.repositories.order_repository import JobRepository
-
-            self.job_repo = JobRepository()
-        else:
-            self.job_repo = job_repository
-
-        self.event_bus = event_bus or global_event_bus
+    def __init__(self, event_bus: EventBus) -> None:
+        self.event_bus = event_bus
 
     def execute(
         self,
@@ -43,18 +20,18 @@ class CreateOrderUseCase(UseCase):
         order_number: str,
         jobs: list[dict],
     ) -> OrderDTO:
-        order = Order(order_number=order_number, user_id=user_id)
-        order = self.order_repo.create(order)
+        order = Order.objects.create(order_number=order_number, user_id=user_id)
 
         created_jobs: list[Job] = []
         for job_input in jobs:
-            job = Job(
-                order=order,
-                job_id=job_input["job_id"],
-                job_status=JobStateMachine.PENDING,
-                file_editable=True,
+            created_jobs.append(
+                Job.objects.create(
+                    order=order,
+                    job_id=job_input["job_id"],
+                    job_status=JobStateMachine.PENDING,
+                    file_editable=True,
+                )
             )
-            created_jobs.append(self.job_repo.create(job))
 
         self.event_bus.publish_durable(
             OrderCreated(

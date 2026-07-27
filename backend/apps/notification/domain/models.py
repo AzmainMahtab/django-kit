@@ -14,7 +14,7 @@ class Notification(models.Model):
 
     class Meta:
         db_table = "notification_notification"
-        ordering = ["-created_at"]
+        ordering = ("-created_at",)
 
     def __str__(self) -> str:
         return f"{self.event_type}: {self.message[:50]}"

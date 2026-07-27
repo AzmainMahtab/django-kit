@@ -19,6 +19,7 @@ dependencies = [
     "pyjwt>=2.12",
     "gunicorn>=22.0",
     "whitenoise>=6.7",
+    "argon2-cffi>=23.1",
 ]
 
 [dependency-groups]
@@ -27,7 +28,24 @@ dev = [
     "pytest>=8.2",
     "import-linter>=2.0",
     "ruff>=0.5",
+    "mypy>=1.10",
+    "django-stubs[compatible-mypy]>=5.0",
 ]
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+ignore_missing_imports = true
+plugins = ["mypy_django_plugin.main"]
+
+[[tool.mypy.overrides]]
+module = ["backend.migrations.*", "backend.apps.*.migrations.*"]
+ignore_errors = true
+
+[tool.django-stubs]
+django_settings_module = "backend.core.settings.test_settings"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "backend.core.settings.test_settings"
@@ -41,7 +59,7 @@ target-version = "py312"
 exclude = ["**/migrations/*.py"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W"]
+select = ["E", "F", "I", "N", "W", "UP", "RUF", "B"]
 
 [build-system]
 requires = ["hatchling"]

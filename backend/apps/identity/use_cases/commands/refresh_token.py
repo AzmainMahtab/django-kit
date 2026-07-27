@@ -11,10 +11,10 @@ from backend.apps.identity.domain.exceptions import (
     TokenBlacklistedError,
     TokenExpiredError,
 )
-from backend.apps.identity.domain.repository_interfaces import UserRepositoryInterface
+from backend.apps.identity.domain.models import User
 from backend.shared.cache_service import CacheService
 from backend.shared.domain import UseCase
-from backend.shared.event_bus import event_bus
+from backend.shared.event_bus import EventBus
 from backend.shared.token_service import TokenService
 
 
@@ -23,15 +23,11 @@ class RefreshTokenUseCase(UseCase):
 
     def __init__(
         self,
-        user_repository: UserRepositoryInterface = None,
-        token_service: TokenService = None,
-        cache_service: CacheService = None,
-    ):
-        if user_repository is None:
-            from backend.apps.identity.repositories.user_repository import UserRepository
-            self.user_repo = UserRepository()
-        else:
-            self.user_repo = user_repository
+        event_bus: EventBus,
+        token_service: TokenService | None = None,
+        cache_service: CacheService | None = None,
+    ) -> None:
+        self.event_bus = event_bus
         self.token_service = token_service or TokenService()
         self.cache = cache_service or CacheService()
 
@@ -52,8 +48,8 @@ class RefreshTokenUseCase(UseCase):
 
         user_id = int(payload["sub"])
         try:
-            user = self.user_repo.get_by_id(user_id)
-        except Exception as exc:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist as exc:
             raise InvalidTokenError("User not found.") from exc
 
         if not user.is_active:
@@ -64,7 +60,7 @@ class RefreshTokenUseCase(UseCase):
 
         tokens = self.token_service.create_token_pair(user.id)
 
-        event_bus.publish(
+        self.event_bus.publish(
             TokenRefreshed(
                 aggregate_id=user.id,
                 data={"user_id": user.id, "old_jti": jti},

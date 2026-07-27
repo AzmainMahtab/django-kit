@@ -7,52 +7,27 @@ from backend.apps.identity.domain.models import User
 from backend.apps.identity.use_cases.commands.login import LoginUseCase
 from backend.apps.identity.use_cases.commands.logout import LogoutUseCase
 from backend.apps.identity.use_cases.commands.refresh_token import RefreshTokenUseCase
+from backend.apps.identity.use_cases.queries.get_profile import GetProfileUseCase
+from backend.shared.event_bus import EventBus
 from backend.shared.exceptions import NotFoundError
 from backend.shared.token_service import TokenService
 
-
-class MockUserRepository:
-    def __init__(self, users=None):
-        self._users = {u.id: u for u in (users or [])}
-
-    def get_by_email(self, email: str) -> User:
-        for user in self._users.values():
-            if user.email.lower() == email.lower():
-                return user
-        raise User.DoesNotExist()
-
-    def get_by_id(self, user_id: int) -> User:
-        if user_id in self._users:
-            return self._users[user_id]
-        raise User.DoesNotExist()
-
-    def list_users(self, filters=None):
-        return []
-
-    def create(self, **kwargs):
-        return User(**kwargs)
-
-    def save(self, user, update_fields=None):
-        return user
-
-    def delete(self, user):
-        pass
+pytestmark = pytest.mark.django_db
 
 
 def _active_user():
-    user = User(
-        id=1,
+    return User.objects.create_user(
         username="alice",
         email="alice@example.com",
-        password=make_password("secret123"),
+        password="secret123",
         is_active=True,
     )
-    return user
 
 
 def test_login_success():
-    repo = MockUserRepository([_active_user()])
-    use_case = LoginUseCase(user_repository=repo)
+    _active_user()
+    bus = EventBus()
+    use_case = LoginUseCase(event_bus=bus)
 
     result = use_case.execute(email="alice@example.com", password="secret123")
 
@@ -61,8 +36,9 @@ def test_login_success():
 
 
 def test_login_invalid_password_raises():
-    repo = MockUserRepository([_active_user()])
-    use_case = LoginUseCase(user_repository=repo)
+    _active_user()
+    bus = EventBus()
+    use_case = LoginUseCase(event_bus=bus)
 
     with pytest.raises(Exception) as exc:
         use_case.execute(email="alice@example.com", password="wrong")
@@ -73,8 +49,9 @@ def test_login_invalid_password_raises():
 def test_login_inactive_user_raises():
     user = _active_user()
     user.is_active = False
-    repo = MockUserRepository([user])
-    use_case = LoginUseCase(user_repository=repo)
+    user.save(update_fields=["is_active"])
+    bus = EventBus()
+    use_case = LoginUseCase(event_bus=bus)
 
     with pytest.raises(Exception) as exc:
         use_case.execute(email="alice@example.com", password="secret123")
@@ -84,11 +61,14 @@ def test_login_inactive_user_raises():
 
 def test_refresh_token_success():
     user = _active_user()
-    repo = MockUserRepository([user])
     token_service = TokenService()
     tokens = token_service.create_token_pair(user.id)
 
-    use_case = RefreshTokenUseCase(user_repository=repo, token_service=token_service)
+    bus = EventBus()
+    use_case = RefreshTokenUseCase(
+        event_bus=bus,
+        token_service=token_service,
+    )
     new_tokens = use_case.execute(refresh_token=tokens["refresh_token"])
 
     assert "access_token" in new_tokens
@@ -97,11 +77,14 @@ def test_refresh_token_success():
 
 def test_refresh_token_rejects_used_token():
     user = _active_user()
-    repo = MockUserRepository([user])
     token_service = TokenService()
     tokens = token_service.create_token_pair(user.id)
 
-    use_case = RefreshTokenUseCase(user_repository=repo, token_service=token_service)
+    bus = EventBus()
+    use_case = RefreshTokenUseCase(
+        event_bus=bus,
+        token_service=token_service,
+    )
     use_case.execute(refresh_token=tokens["refresh_token"])
 
     with pytest.raises(Exception) as exc:
@@ -115,7 +98,8 @@ def test_logout_blacklists_tokens():
     token_service = TokenService()
     tokens = token_service.create_token_pair(user.id)
 
-    use_case = LogoutUseCase(token_service=token_service)
+    bus = EventBus()
+    use_case = LogoutUseCase(event_bus=bus, token_service=token_service)
     use_case.execute(
         refresh_token=tokens["refresh_token"],
         access_token=tokens["access_token"],
@@ -128,20 +112,15 @@ def test_logout_blacklists_tokens():
 
 
 def test_get_profile_success():
-    from backend.apps.identity.use_cases.queries.get_profile import GetProfileUseCase
+    user = _active_user()
+    use_case = GetProfileUseCase()
 
-    repo = MockUserRepository([_active_user()])
-    use_case = GetProfileUseCase(user_repository=repo)
-
-    result = use_case.execute(user_id=1)
+    result = use_case.execute(user_id=user.id)
     assert result.email == "alice@example.com"
 
 
 def test_get_profile_missing_user_raises():
-    from backend.apps.identity.use_cases.queries.get_profile import GetProfileUseCase
-
-    repo = MockUserRepository([])
-    use_case = GetProfileUseCase(user_repository=repo)
+    use_case = GetProfileUseCase()
 
     with pytest.raises(NotFoundError):
         use_case.execute(user_id=99)

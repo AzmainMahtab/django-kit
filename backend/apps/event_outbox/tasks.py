@@ -8,7 +8,6 @@ from django.db import transaction
 from django.utils.module_loading import import_string
 
 from backend.apps.event_outbox.models import DeadLetterEvent, EventOutbox, EventStore
-from backend.shared.domain import DomainEvent
 from backend.shared.event_bus import EventBus
 
 logger = logging.getLogger(__name__)
@@ -42,7 +41,7 @@ def relay_outbox_event(self, outbox_id: str):
         logger.exception("Failed to publish outbox event %s", outbox_id)
         outbox.attempts += 1
         outbox.save(update_fields=["attempts"])
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
 
     with transaction.atomic():
         outbox.published_at = datetime.now(UTC)

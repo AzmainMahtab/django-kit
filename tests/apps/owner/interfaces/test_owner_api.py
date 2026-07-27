@@ -51,7 +51,7 @@ def test_create_owner_success(client, staff_user, regular_user):
 
 
 def test_create_owner_duplicate_user_returns_409(client, staff_user, regular_user):
-    Owner.objects.create(user=regular_user, address="123 Main St")
+    Owner.objects.create(user_id=regular_user.id, address="123 Main St")
 
     response = client.post(
         "/api/owners/",
@@ -61,7 +61,7 @@ def test_create_owner_duplicate_user_returns_409(client, staff_user, regular_use
 
 
 def test_get_owner_by_uuid(client, staff_user, regular_user):
-    owner = Owner.objects.create(user=regular_user, address="123 Main St")
+    owner = Owner.objects.create(user_id=regular_user.id, address="123 Main St")
 
     response = client.get(f"/api/owners/{owner.uuid}/")
     assert response.status_code == 200
@@ -69,7 +69,7 @@ def test_get_owner_by_uuid(client, staff_user, regular_user):
 
 
 def test_get_owner_by_user_id(client, staff_user, regular_user):
-    owner = Owner.objects.create(user=regular_user, address="123 Main St")
+    owner = Owner.objects.create(user_id=regular_user.id, address="123 Main St")
 
     response = client.get(f"/api/owners/by-user/{regular_user.id}/")
     assert response.status_code == 200
@@ -77,7 +77,7 @@ def test_get_owner_by_user_id(client, staff_user, regular_user):
 
 
 def test_list_owners(client, staff_user, regular_user):
-    Owner.objects.create(user=regular_user, address="123 Main St")
+    Owner.objects.create(user_id=regular_user.id, address="123 Main St")
 
     response = client.get("/api/owners/")
     assert response.status_code == 200

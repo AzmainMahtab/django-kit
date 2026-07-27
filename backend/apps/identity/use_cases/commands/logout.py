@@ -8,7 +8,7 @@ from backend.apps.identity.domain.events import UserLoggedOut
 from backend.apps.identity.domain.exceptions import InvalidTokenError
 from backend.shared.cache_service import CacheService
 from backend.shared.domain import UseCase
-from backend.shared.event_bus import event_bus
+from backend.shared.event_bus import EventBus
 from backend.shared.token_service import TokenService
 
 
@@ -17,9 +17,11 @@ class LogoutUseCase(UseCase):
 
     def __init__(
         self,
-        token_service: TokenService = None,
-        cache_service: CacheService = None,
-    ):
+        event_bus: EventBus,
+        token_service: TokenService | None = None,
+        cache_service: CacheService | None = None,
+    ) -> None:
+        self.event_bus = event_bus
         self.token_service = token_service or TokenService()
         self.cache = cache_service or CacheService()
 
@@ -28,16 +30,17 @@ class LogoutUseCase(UseCase):
         refresh_jti = self._blacklist_token(refresh_token, "refresh")
         if refresh_jti:
             payload = self._decode_safely(refresh_token)
-            user_id = payload.get("sub")
+            if payload is not None:
+                user_id = payload.get("sub")
 
         access_jti = self._blacklist_token(access_token, "access")
         if access_jti:
             payload = self._decode_safely(access_token)
-            if not user_id:
+            if payload is not None and not user_id:
                 user_id = payload.get("sub")
 
         if user_id:
-            event_bus.publish(
+            self.event_bus.publish(
                 UserLoggedOut(
                     aggregate_id=user_id,
                     data={"user_id": user_id, "refresh_jti": refresh_jti, "access_jti": access_jti},
@@ -63,7 +66,9 @@ class LogoutUseCase(UseCase):
         self.cache.set(f"token:blacklist:{jti}", "1", timeout=max(remaining, 1))
         return jti
 
-    def _decode_safely(self, token: str) -> dict | None:
+    def _decode_safely(self, token: str | None) -> dict | None:
+        if token is None:
+            return None
         try:
             return self.token_service.decode(token)
         except jwt.ExpiredSignatureError:

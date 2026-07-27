@@ -27,7 +27,7 @@ class EventOutbox(models.Model):
 
     class Meta:
         db_table = "event_outbox"
-        ordering = ["created_at"]
+        ordering = ("created_at",)
         verbose_name_plural = "event outbox entries"
 
     def __str__(self) -> str:
@@ -47,7 +47,7 @@ class EventStore(models.Model):
 
     class Meta:
         db_table = "event_store"
-        ordering = ["-published_at"]
+        ordering = ("-published_at",)
 
     def __str__(self) -> str:
         return f"{self.event_type} at {self.published_at}"
@@ -66,7 +66,7 @@ class DeadLetterEvent(models.Model):
 
     class Meta:
         db_table = "event_dead_letter"
-        ordering = ["-created_at"]
+        ordering = ("-created_at",)
 
     def __str__(self) -> str:
         return f"{self.event_class_path} failed {self.attempts} times"

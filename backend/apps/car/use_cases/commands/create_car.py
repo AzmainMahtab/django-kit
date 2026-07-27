@@ -1,10 +1,11 @@
 """Create car command."""
 
+from backend.apps.car.domain.events import CarCreated
 from backend.apps.car.domain.exceptions import CarAlreadyExistsError
 from backend.apps.car.domain.models import Car
 from backend.apps.car.domain.ports import OwnerFacade
-from backend.apps.car.domain.repository_interfaces import CarRepositoryInterface
 from backend.shared.domain import UseCase
+from backend.shared.event_bus import EventBus
 from backend.shared.exceptions import NotFoundError
 
 
@@ -13,22 +14,11 @@ class CreateCarUseCase(UseCase):
 
     def __init__(
         self,
-        car_repository: CarRepositoryInterface = None,
-        owner_facade: OwnerFacade = None,
-    ):
-        if car_repository is None:
-            from backend.apps.car.repositories.car_repository import CarRepository
-
-            self.car_repo = CarRepository()
-        else:
-            self.car_repo = car_repository
-
-        if owner_facade is None:
-            from backend.shared.use_case_registry import get_owner
-
-            self.owner_facade = get_owner()
-        else:
-            self.owner_facade = owner_facade
+        event_bus: EventBus,
+        owner_facade: OwnerFacade,
+    ) -> None:
+        self.event_bus = event_bus
+        self.owner_facade = owner_facade
 
     def execute(
         self,
@@ -39,8 +29,7 @@ class CreateCarUseCase(UseCase):
         color: str,
         license_plate: str,
     ) -> Car:
-        existing = self.car_repo.get_by_license_plate(license_plate)
-        if existing:
+        if Car.objects.get_by_license_plate(license_plate):
             raise CarAlreadyExistsError(
                 f"A car with license plate '{license_plate}' already exists."
             )
@@ -51,7 +40,7 @@ class CreateCarUseCase(UseCase):
         except Exception as exc:
             raise NotFoundError(f"Owner with id {owner_id} not found.") from exc
 
-        car = Car(
+        car = Car.objects.create(
             owner_id=owner_id,
             make=make,
             model=model,
@@ -59,5 +48,14 @@ class CreateCarUseCase(UseCase):
             color=color,
             license_plate=license_plate,
         )
-
-        return self.car_repo.create(car)
+        self.event_bus.publish(
+            CarCreated(
+                aggregate_id=car.id,
+                data={
+                    "car_id": car.id,
+                    "owner_id": car.owner_id,
+                    "license_plate": car.license_plate,
+                },
+            )
+        )
+        return car

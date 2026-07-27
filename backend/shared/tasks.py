@@ -33,7 +33,7 @@ def dispatch_domain_event(self, event_class_path: str, payload: dict):
         event_bus.publish(event)
     except Exception as exc:
         logger.exception("Error dispatching event %s", event_class_path)
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
 
 
 def _record_dead_letter(event_class_path: str, payload: dict, exc: Exception) -> None:

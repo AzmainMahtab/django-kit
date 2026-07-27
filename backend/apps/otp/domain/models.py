@@ -1,20 +1,31 @@
 """OTP domain models."""
 
-from django.conf import settings
+from typing import cast
+
 from django.db import models
 
 from backend.apps.otp.domain.value_objects import OtpType
 
 
+class OneTimePasswordManager(models.Manager):
+    def get_latest_by_user_and_type(
+        self, user_id: int, otp_type: OtpType
+    ) -> "OneTimePassword | None":
+        result = (
+            self.get_queryset()
+            .filter(user_id=user_id, otp_type=otp_type.value)
+            .order_by("-created_at")
+            .first()
+        )
+        return cast("OneTimePassword | None", result)
+
+
 class OneTimePassword(models.Model):
     """Stored OTP with hashed code, type, and usage tracking."""
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="otps",
-        db_index=True,
-    )
+    objects = OneTimePasswordManager()
+
+    user_id = models.IntegerField(db_index=True)
     otp_type = models.CharField(
         max_length=32,
         choices=[(t.value, t.value) for t in OtpType],
@@ -28,7 +39,7 @@ class OneTimePassword(models.Model):
 
     class Meta:
         db_table = "otp_one_time_password"
-        ordering = ["-created_at"]
+        ordering = ("-created_at",)
 
     @property
     def is_expired(self) -> bool:

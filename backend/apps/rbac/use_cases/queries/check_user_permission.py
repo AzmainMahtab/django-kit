@@ -2,7 +2,7 @@
 
 from django.contrib.auth import get_user_model
 
-from backend.apps.rbac.domain.repository_interfaces import RbacRepositoryInterface
+from backend.apps.rbac.domain.models import Role
 from backend.shared.domain import UseCase
 from backend.shared.exceptions import NotFoundError
 
@@ -11,13 +11,6 @@ User = get_user_model()
 
 class CheckUserPermissionUseCase(UseCase):
     """Pure read: check whether a user has a specific effective permission."""
-
-    def __init__(self, rbac_repository: RbacRepositoryInterface = None):
-        if rbac_repository is None:
-            from backend.apps.rbac.repositories.rbac_repository import RbacRepository
-            self.rbac_repo = RbacRepository()
-        else:
-            self.rbac_repo = rbac_repository
 
     def execute(self, user_id: int, permission: str) -> dict:
         try:
@@ -28,5 +21,8 @@ class CheckUserPermissionUseCase(UseCase):
         return {
             "user_id": user_id,
             "permission": permission,
-            "has_permission": self.rbac_repo.check_user_permission(user_id, permission),
+            "has_permission": Role.objects.filter(
+                user_roles__user_id=user_id,
+                role_permissions__permission__name=permission,
+            ).exists(),
         }

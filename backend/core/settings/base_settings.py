@@ -5,13 +5,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from .celery_settings import *  # noqa: F401,F403
-from .cors_settings import *  # noqa: F401,F403
-from .database_settings import *  # noqa: F401,F403
-from .drf_settings import *  # noqa: F401,F403
-from .drf_spectacular_settings import *  # noqa: F401,F403
-from .redis_settings import *  # noqa: F401,F403
-from .storage_settings import *  # noqa: F401,F403
+from .celery_settings import *  # noqa: F403
+from .cors_settings import *  # noqa: F403
+from .database_settings import *  # noqa: F403
+from .drf_settings import *  # noqa: F403
+from .drf_spectacular_settings import *  # noqa: F403
+from .redis_settings import *  # noqa: F403
+from .storage_settings import *  # noqa: F403
 
 load_dotenv()
 
@@ -55,6 +55,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "backend.shared.middleware.CorrelationIdMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -90,6 +91,18 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "identity.User"
 
+AUTHENTICATION_BACKENDS = [
+    "backend.shared.admin_backend.RbacAdminBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# Use Argon2 as the primary password hasher. PBKDF2 is kept as a fallback so
+# legacy hashes remain verifiable.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
@@ -122,3 +135,14 @@ LOGGING = {
         "level": os.getenv("LOG_LEVEL", "INFO"),
     },
 }
+
+# Production security hardening. These are opt-in via environment variables so
+# local development continues to work without TLS.
+SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "False").lower() == "true"
+SESSION_COOKIE_SECURE = os.getenv("DJANGO_SESSION_COOKIE_SECURE", "False").lower() == "true"
+CSRF_COOKIE_SECURE = os.getenv("DJANGO_CSRF_COOKIE_SECURE", "False").lower() == "true"
+SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = "DENY"

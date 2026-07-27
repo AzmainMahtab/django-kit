@@ -4,11 +4,11 @@ from django.contrib.auth.hashers import check_password
 
 from backend.apps.otp.domain.events import OtpValidated
 from backend.apps.otp.domain.exceptions import InvalidOtpError, OtpAlreadyUsedError, OtpExpiredError
-from backend.apps.otp.domain.repository_interfaces import OtpRepositoryInterface
+from backend.apps.otp.domain.models import OneTimePassword
 from backend.apps.otp.domain.value_objects import OtpType
 from backend.shared.cache_service import CacheService
 from backend.shared.domain import UseCase
-from backend.shared.event_bus import event_bus
+from backend.shared.event_bus import EventBus
 
 
 class ValidateOtpUseCase(UseCase):
@@ -16,14 +16,10 @@ class ValidateOtpUseCase(UseCase):
 
     def __init__(
         self,
-        otp_repository: OtpRepositoryInterface = None,
-        cache_service: CacheService = None,
-    ):
-        if otp_repository is None:
-            from backend.apps.otp.repositories.otp_repository import OtpRepository
-            self.otp_repo = OtpRepository()
-        else:
-            self.otp_repo = otp_repository
+        event_bus: EventBus,
+        cache_service: CacheService | None = None,
+    ) -> None:
+        self.event_bus = event_bus
         self.cache = cache_service or CacheService()
 
     def execute(self, user_id: int, otp_type: OtpType, code: str) -> dict:
@@ -32,12 +28,12 @@ class ValidateOtpUseCase(UseCase):
 
         if cached and cached.get("code") == code:
             otp_id = cached["otp_id"]
-            self.otp_repo.mark_used(otp_id)
+            OneTimePassword.objects.filter(pk=otp_id).update(is_used=True)
             self.cache.delete(cache_key)
             self._publish_event(user_id, otp_type, otp_id)
             return {"success": True, "otp_id": otp_id}
 
-        otp = self.otp_repo.get_latest_by_user_and_type(user_id, otp_type)
+        otp = OneTimePassword.objects.get_latest_by_user_and_type(user_id, otp_type)
         if otp is None:
             raise InvalidOtpError("No valid OTP found for this user and type.")
 
@@ -50,7 +46,7 @@ class ValidateOtpUseCase(UseCase):
         if not check_password(code, otp.code_hash):
             raise InvalidOtpError("Invalid OTP code.")
 
-        self.otp_repo.mark_used(otp.id)
+        OneTimePassword.objects.filter(pk=otp.id).update(is_used=True)
         self.cache.delete(cache_key)
         self._publish_event(user_id, otp_type, otp.id)
 
@@ -60,9 +56,8 @@ class ValidateOtpUseCase(UseCase):
     def _cache_key(user_id: int, otp_type: OtpType) -> str:
         return f"otp:{user_id}:{otp_type.value}"
 
-    @staticmethod
-    def _publish_event(user_id: int, otp_type: OtpType, otp_id: int) -> None:
-        event_bus.publish(
+    def _publish_event(self, user_id: int, otp_type: OtpType, otp_id: int) -> None:
+        self.event_bus.publish(
             OtpValidated(
                 aggregate_id=user_id,
                 data={"user_id": user_id, "otp_type": otp_type.value, "otp_id": otp_id},

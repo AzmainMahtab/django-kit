@@ -38,7 +38,7 @@ def owner():
         email="car_owner@example.com",
         password="secret123",
     )
-    return Owner.objects.create(user=user, address="123 Garage St")
+    return Owner.objects.create(user_id=user.id, address="123 Garage St")
 
 
 def test_create_car_success(client, staff_user, owner):
@@ -60,7 +60,7 @@ def test_create_car_success(client, staff_user, owner):
 
 def test_create_car_duplicate_license_plate_returns_409(client, staff_user, owner):
     Car.objects.create(
-        owner=owner,
+        owner_id=owner.id,
         make="Honda",
         model="Civic",
         year=2019,
@@ -99,7 +99,7 @@ def test_create_car_missing_owner_returns_404(client, staff_user):
 
 def test_get_car_by_uuid(client, staff_user, owner):
     car = Car.objects.create(
-        owner=owner,
+        owner_id=owner.id,
         make="Honda",
         model="Civic",
         year=2019,
@@ -114,7 +114,7 @@ def test_get_car_by_uuid(client, staff_user, owner):
 
 def test_list_cars_by_owner(client, staff_user, owner):
     Car.objects.create(
-        owner=owner,
+        owner_id=owner.id,
         make="Honda",
         model="Civic",
         year=2019,
@@ -129,7 +129,7 @@ def test_list_cars_by_owner(client, staff_user, owner):
 
 def test_list_cars(client, staff_user, owner):
     Car.objects.create(
-        owner=owner,
+        owner_id=owner.id,
         make="Honda",
         model="Civic",
         year=2019,
