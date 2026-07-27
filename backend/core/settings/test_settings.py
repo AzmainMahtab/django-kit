@@ -15,3 +15,6 @@ CELERY_RESULT_BACKEND = "cache+memory://"
 
 # Tests must not require a Redis broker for the channel layer.
 CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+
+# Disable Sentry during tests so no events are sent and initialization is skipped.
+SENTRY_DSN = ""

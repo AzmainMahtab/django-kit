@@ -5,10 +5,12 @@ from django.contrib import admin
 from django.urls import include, path
 
 from backend.shared.health_views import health_check
+from backend.shared.metrics import metrics_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("health/", health_check, name="health"),
+    path("metrics/", metrics_view, name="metrics"),
     path("api/", include("backend.apps.identity.interfaces.urls")),
     path("api/otp/", include("backend.apps.otp.interfaces.urls")),
     path("api/rbac/", include("backend.apps.rbac.interfaces.urls")),
