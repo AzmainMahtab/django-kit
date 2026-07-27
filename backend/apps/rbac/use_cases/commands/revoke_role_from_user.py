@@ -29,9 +29,7 @@ class RevokeRoleFromUserUseCase(UseCase):
             raise NotFoundError(f"Role with id {role_id} not found.") from exc
 
         if not UserRole.objects.filter(user_id=user_id, role_id=role_id).exists():
-            raise BusinessValidationError(
-                f"Role '{role.name}' is not assigned to user {user_id}."
-            )
+            raise BusinessValidationError(f"Role '{role.name}' is not assigned to user {user_id}.")
 
         UserRole.objects.filter(user_id=user_id, role_id=role_id).delete()
 

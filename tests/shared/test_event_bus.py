@@ -85,9 +85,7 @@ class TestEventBus:
         def fake_delay(**kwargs):
             calls.append(kwargs)
 
-        monkeypatch.setattr(
-            "backend.shared.tasks.dispatch_domain_event.delay", fake_delay
-        )
+        monkeypatch.setattr("backend.shared.tasks.dispatch_domain_event.delay", fake_delay)
 
         event = UserCreated(aggregate_id=42, data={"x": 1})
         bus.publish_later(event)

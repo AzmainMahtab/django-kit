@@ -2,8 +2,6 @@
 
 import pytest
 
-from backend.apps.ordering.domain.events import OrderCreated
-from backend.apps.ordering.domain.models import Job, Order
 from backend.apps.ordering.domain.state_machine import JobStateMachine
 from backend.apps.ordering.use_cases.commands.create_order import CreateOrderUseCase
 from backend.shared.event_bus import EventBus

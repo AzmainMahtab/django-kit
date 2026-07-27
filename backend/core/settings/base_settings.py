@@ -23,11 +23,15 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
 JWT_ACCESS_TOKEN_LIFETIME_SECONDS = int(os.getenv("JWT_ACCESS_TOKEN_LIFETIME_SECONDS", "900"))
 JWT_REFRESH_TOKEN_LIFETIME_SECONDS = int(os.getenv("JWT_REFRESH_TOKEN_LIFETIME_SECONDS", "604800"))
 
-DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes")
+# Secure by default: DEBUG must be opted into explicitly for local development.
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
+    # Must precede django.contrib.staticfiles so `runserver` serves ASGI and
+    # WebSocket routes work in development.
+    "daphne",
     # Django built-in
     "django.contrib.admin",
     "django.contrib.auth",
@@ -115,19 +119,33 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Structured by default in production, human-readable in development. Both
+# formats carry the X-Request-ID correlation ID set by CorrelationIdMiddleware,
+# so a single request can be traced across web, Celery worker and beat output.
+LOG_FORMAT = os.getenv("LOG_FORMAT", "console" if DEBUG else "json")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "request_id": {
+            "()": "backend.shared.middleware.RequestIdFilter",
+        },
+    },
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {message}",
+            "format": "{levelname} {asctime} {module} [{request_id}] {message}",
             "style": "{",
+        },
+        "json": {
+            "()": "backend.shared.middleware.JsonFormatter",
         },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "filters": ["request_id"],
+            "formatter": "json" if LOG_FORMAT == "json" else "verbose",
         },
     },
     "root": {

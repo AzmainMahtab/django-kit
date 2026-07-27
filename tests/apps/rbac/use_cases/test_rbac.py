@@ -190,7 +190,6 @@ def test_check_user_permission(user):
     role.permissions.add(permission)
     role.user_roles.create(user_id=user.id)
 
-    bus = EventBus()
     use_case = CheckUserPermissionUseCase()
     result = use_case.execute(user_id=user.id, permission="user:create")
 

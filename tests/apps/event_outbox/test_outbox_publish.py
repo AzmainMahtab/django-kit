@@ -51,9 +51,7 @@ def test_publish_later_records_event_store(monkeypatch):
     def fake_delay(**kwargs):
         calls.append(kwargs)
 
-    monkeypatch.setattr(
-        "backend.shared.tasks.dispatch_domain_event.delay", fake_delay
-    )
+    monkeypatch.setattr("backend.shared.tasks.dispatch_domain_event.delay", fake_delay)
 
     bus.publish_later(
         OrderCreated(

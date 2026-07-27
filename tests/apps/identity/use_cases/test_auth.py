@@ -1,7 +1,6 @@
 """Unit tests for identity authentication use cases."""
 
 import pytest
-from django.contrib.auth.hashers import make_password
 
 from backend.apps.identity.domain.models import User
 from backend.apps.identity.use_cases.commands.login import LoginUseCase
