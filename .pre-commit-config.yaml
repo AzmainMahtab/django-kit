@@ -1,0 +1,45 @@
+ci:
+  autofix_commit_msg: "chore: auto-fix with pre-commit"
+  autoupdate_commit_msg: "chore: update pre-commit hooks"
+  autoupdate_schedule: monthly
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # mypy and import-linter run through uv rather than pre-commit's isolated
+  # environments: both need the project's own venv — mypy for the django-stubs
+  # plugin and DJANGO_SETTINGS_MODULE, import-linter for the installed source
+  # tree it walks.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (django-stubs)
+        entry: uv run mypy backend
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: import-linter
+        name: import-linter (architecture contracts)
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        types: [python]

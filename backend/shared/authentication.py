@@ -5,6 +5,7 @@ This is shared infrastructure and can be referenced from DRF settings.
 
 import jwt
 from django.contrib.auth import get_user_model
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework import authentication, exceptions
 
 from backend.shared.cache_service import CacheService
@@ -63,3 +64,22 @@ class JWTAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed("User account is disabled.")
 
         return (user, token)
+
+
+class JWTAuthenticationScheme(OpenApiAuthenticationExtension):
+    """Describe :class:`JWTAuthentication` to drf-spectacular.
+
+    Without this, every view using the custom authenticator emits a W001 warning
+    and the generated schema carries no security scheme — leaving Swagger UI's
+    "Authorize" button unable to send a token.
+    """
+
+    target_class = JWTAuthentication
+    name = "jwtAuth"
+
+    def get_security_definition(self, auto_schema):
+        return {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }

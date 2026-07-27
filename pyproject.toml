@@ -20,6 +20,7 @@ dependencies = [
     "gunicorn>=22.0",
     "whitenoise>=6.7",
     "argon2-cffi>=23.1",
+    "channels-redis>=4.2",
 ]
 
 [dependency-groups]
@@ -30,6 +31,7 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
     "django-stubs[compatible-mypy]>=5.0",
+    "pytest-asyncio>=0.24",
 ]
 
 [tool.mypy]
@@ -52,6 +54,8 @@ DJANGO_SETTINGS_MODULE = "backend.core.settings.test_settings"
 django_find_project = false
 pythonpath = ["."]
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 100

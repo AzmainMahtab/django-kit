@@ -176,41 +176,127 @@ This is the only file other modules may import from your app.
 
 ## 12. Import linter
 
-Keep `.import-linter.ini` up to date when adding modules. Run:
+Keep `.importlinter` up to date when adding modules. Run:
 
 ```bash
-lint-imports --config .import-linter.ini
+uv run lint-imports
 ```
+
+The file is named `.importlinter` — one of import-linter's default lookup names — so a
+bare `lint-imports` finds it. Do not rename it: with a non-default name the tool finds no
+config and **exits successfully**, silently reporting a pass.
 
 CI must block any PR that violates a contract.
 
 ## 13. Type checking
 
-Run mypy on shared infrastructure and use cases:
+The whole tree is type-clean, so check all of it — not just `shared/` and `use_cases/`:
 
 ```bash
-mypy backend/shared backend/apps/*/use_cases
+uv run mypy backend
 ```
 
-## 14. Adding a new module
+## 13a. Everything at once
+
+```bash
+make lint     # ruff + ruff format --check + mypy + lint-imports
+make test     # pytest
+make format   # auto-fix and format
+```
+
+`pre-commit install` wires the same gates to every commit.
+
+## 14. WebSockets
+
+Consumers are an `interfaces/` concern — the same layer as DRF views. They may call use
+cases; they must not hold business logic.
+
+```
+apps/<module>/interfaces/consumers.py   # the consumer
+apps/<module>/interfaces/routing.py     # that module's websocket_urlpatterns
+core/routing.py                         # combines them, like core/urls.py for HTTP
+core/asgi.py                            # origin validation + auth + URLRouter
+```
+
+Sockets are an authenticated surface: reject anonymous connections, and scope every group
+to the authenticated principal (see `notification.interfaces.consumers`). Publish to a
+client with a channel-layer group send:
+
+```python
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from backend.apps.notification.interfaces.consumers import user_group
+
+async_to_sync(get_channel_layer().group_send)(
+    user_group(user_id),
+    {"type": "notification.message", "payload": {...}},
+)
+```
+
+The channel layer is Redis-backed (`CHANNEL_LAYER_URL`, defaults to `REDIS_URL`). The
+in-memory layer is per-process, so it is used only in tests — a group send from a Celery
+worker would never reach a socket held by the web process.
+
+The app is served by **daphne over ASGI** in both dev and production. Serving
+`core.wsgi` would silently drop every WebSocket.
+
+## 15. Logging
+
+`CorrelationIdMiddleware` assigns an `X-Request-ID` per request (honouring an inbound
+header) and `RequestIdFilter` stamps it onto every log record, so one request can be
+traced across web, worker and beat output. Format is chosen by `LOG_FORMAT`:
+`console` when `DEBUG`, otherwise `json`.
+
+Never construct log lines with the ID by hand — the filter is installed globally and
+covers Django and third-party loggers too.
+
+## 16. Admin
+
+The admin is an operational surface, not a business one. Rules:
+
+- Never render a credential. Hash columns are excluded from list, detail and forms.
+- Records with domain invariants (hashing, expiry, single-use) are **read-only** in the
+  admin — editing them by hand bypasses the use case that enforces the rules.
+- Access is gated by `RbacAdminBackend`: superusers always, otherwise the `admin:access`
+  RBAC permission.
+- Every registered model is smoke-tested in `tests/shared/test_admin_views.py`, which
+  loads each changelist. A new module with no `admin.py` fails that test.
+
+## 17. Adding a new module
 
 1. Create `apps/<module>/` with `domain/`, `use_cases/`, `interfaces/`.
 2. Add the AppConfig class in `apps/<module>/apps.py`.
 3. Wire the facade in `backend/core/container.py`.
 4. Add `apps.<module>` to `core/settings/base_settings.py` `INSTALLED_APPS`.
 5. Add URL include in `core/urls.py` if the module exposes endpoints.
-6. Add a contract to `.import-linter.ini` if needed.
+6. Add a contract to `.importlinter` if needed.
 7. Add the module's OpenAPI tag to `core/settings/drf_spectacular_settings.py`.
+8. Add `admin.py` and extend the expected-app set in `tests/shared/test_admin_views.py`.
+9. Add `interfaces/routing.py` and include it in `core/routing.py` if it pushes over WS.
 
-## 15. Docker workflow
+## 18. Docker workflow
 
 ```bash
-# Start all services (now includes Flower on port 5555)
-docker compose up --build
+# Start all services (includes Flower on port 5555)
+make up          # or: docker compose up --build
 
 # Run management commands
-docker compose exec web python manage.py createsuperuser
+docker compose exec web python backend/manage.py createsuperuser
 
 # Run tests
-docker compose exec web pytest ..
+make test
 ```
+
+## 19. Migration notes — what the structural rework removed
+
+The kit previously shipped three Django-idiomatic layers that have been deliberately
+deleted. If you have seen an older copy, this is what changed and why:
+
+| Removed | Replaced by | Why |
+|---|---|---|
+| Global `shared/use_case_registry.py` singleton | `core/container.py`, constructor injection | The registry made initialisation order implicit and test outcomes order-dependent. |
+| 7 × `repositories/` + `domain/repository_interfaces.py` | ORM-direct managers (§5) | The kit was paying for an abstraction over the ORM while its domain was still ORM-bound — the cost of both styles, the benefit of neither. |
+| Cross-module `ForeignKey` (`otp.user`, `owner.user`, `car.owner`) | Indexed `IntegerField` ID references (§6) | DB-level coupling across bounded contexts blocks independent migration and any future service split. |
+
+Do not reintroduce any of them. Contracts in `.importlinter` enforce the boundaries these
+changes created; §5 and §6 are the positive rules that replaced them.

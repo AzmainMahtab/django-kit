@@ -36,7 +36,8 @@ WORKDIR /app/backend
 EXPOSE 8000
 
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
-CMD ["gunicorn", "backend.core.wsgi:application", "--bind", "0.0.0.0:8000"]
+# ASGI, not WSGI: the app serves both HTTP and WebSockets (see backend/core/asgi.py).
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "backend.core.asgi:application"]
 
 # Development target with dev dependencies and auto-reload server.
 FROM base AS dev

@@ -37,8 +37,7 @@ class JobStateMachine:
         if not cls.can_transition(from_status, to_status):
             allowed = cls.TRANSITIONS.get(from_status, [])
             raise BusinessValidationError(
-                f"Cannot transition from '{from_status}' to '{to_status}'. "
-                f"Allowed: {allowed}"
+                f"Cannot transition from '{from_status}' to '{to_status}'. Allowed: {allowed}"
             )
 
     @classmethod
